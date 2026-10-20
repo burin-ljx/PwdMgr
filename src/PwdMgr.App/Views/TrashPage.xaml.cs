@@ -34,16 +34,14 @@ public sealed partial class TrashPage : Page
 
     private void OnBackClick(object sender, RoutedEventArgs e) => App.Shell.NavigateBackToVault();
 
-    private void OnSelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateActionState();
-
     private async void OnRestoreClick(object sender, RoutedEventArgs e)
     {
-        if (_session is null || TrashList.SelectedItem is not TrashItemView selected)
+        if (_session is null || sender is not FrameworkElement { DataContext: TrashItemView item })
         {
             return;
         }
 
-        if (!_session.Document.Restore(selected.Id))
+        if (!_session.Document.Restore(item.Id))
         {
             Reload();
             return;
@@ -55,14 +53,14 @@ public sealed partial class TrashPage : Page
 
     private async void OnPurgeClick(object sender, RoutedEventArgs e)
     {
-        if (_session is null || TrashList.SelectedItem is not TrashItemView selected)
+        if (_session is null || sender is not FrameworkElement { DataContext: TrashItemView item })
         {
             return;
         }
 
         var confirmed = await ConfirmAsync(
             "彻底删除这条记录？",
-            $"“{selected.Title}”将被永久删除，无法恢复。",
+            $"“{item.Title}”将被永久删除，无法恢复。",
             "彻底删除");
 
         if (!confirmed)
@@ -70,7 +68,7 @@ public sealed partial class TrashPage : Page
             return;
         }
 
-        _session.Document.Purge(selected.Id);
+        _session.Document.Purge(item.Id);
         await SaveOrReportAsync();
         Reload();
     }
@@ -119,6 +117,7 @@ public sealed partial class TrashPage : Page
         }
     }
 
+    /// <summary>二次确认。确认按钮用红色，取消用默认（次要）样式，且不设默认按钮。</summary>
     private async Task<bool> ConfirmAsync(string title, string message, string primaryText)
     {
         var dialog = new ContentDialog
@@ -127,8 +126,9 @@ public sealed partial class TrashPage : Page
             Title = title,
             Content = message,
             PrimaryButtonText = primaryText,
+            PrimaryButtonStyle = (Style)Application.Current.Resources["DestructiveButtonStyle"],
             CloseButtonText = "取消",
-            DefaultButton = ContentDialogButton.Close,
+            DefaultButton = ContentDialogButton.None,
         };
 
         return await dialog.ShowAsync() == ContentDialogResult.Primary;
@@ -149,15 +149,6 @@ public sealed partial class TrashPage : Page
 
         StatusText.Text = _items.Count == 0 ? "回收站是空的" : $"共 {_items.Count} 条记录";
         EmptyPanel.Visibility = _items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        UpdateActionState();
-    }
-
-    private void UpdateActionState()
-    {
-        var hasSelection = TrashList.SelectedItem is TrashItemView;
-
-        RestoreButton.IsEnabled = hasSelection;
-        PurgeButton.IsEnabled = hasSelection;
         EmptyTrashButton.IsEnabled = _items.Count > 0;
     }
 }

@@ -285,7 +285,8 @@ public sealed partial class VaultPage : Page
             copied ? InfoBarSeverity.Success : InfoBarSeverity.Error);
     }
 
-    private async Task<bool> ConfirmAsync(string title, string message, string primaryText)
+    /// <summary>二次确认。destructive 为 true 时确认按钮用红色（删除类操作），且不设默认按钮。</summary>
+    private async Task<bool> ConfirmAsync(string title, string message, string primaryText, bool destructive = false)
     {
         var dialog = new ContentDialog
         {
@@ -294,8 +295,13 @@ public sealed partial class VaultPage : Page
             Content = message,
             PrimaryButtonText = primaryText,
             CloseButtonText = "取消",
-            DefaultButton = ContentDialogButton.Close,
+            DefaultButton = destructive ? ContentDialogButton.None : ContentDialogButton.Primary,
         };
+
+        if (destructive)
+        {
+            dialog.PrimaryButtonStyle = (Style)Application.Current.Resources["DestructiveButtonStyle"];
+        }
 
         return await dialog.ShowAsync() == ContentDialogResult.Primary;
     }
@@ -328,18 +334,34 @@ public sealed partial class VaultPage : Page
         App.Shell.NavigateToTrash();
     }
 
-    private async void OnDeleteClick(object sender, RoutedEventArgs e)
+    private async void OnDeleteItemClick(object sender, RoutedEventArgs e)
     {
-        if (_session is null || _currentItem is null)
+        if (_session is null || sender is not FrameworkElement { DataContext: PasswordItem item })
         {
             return;
         }
 
-        var item = _currentItem;
+        if (!await SaveCurrentAsync(allowDiscardEmptyDraft: true))
+        {
+            return;
+        }
+
+        var confirmed = await ConfirmAsync(
+            "删除这条记录？",
+            $"“{item.Title}”会被移到回收站，可以再恢复。",
+            "删除",
+            destructive: true);
+
+        if (!confirmed)
+        {
+            return;
+        }
+
         SaveErrorBar.IsOpen = false;
 
         if (!_session.Document.MoveToTrash(item.Id))
         {
+            RefreshList(_currentItem?.Id);
             return;
         }
 
@@ -351,10 +373,11 @@ public sealed partial class VaultPage : Page
         {
             _session.Document.Restore(item.Id);
             ShowError(ex.Message);
+            RefreshList(_currentItem?.Id);
             return;
         }
 
-        RefreshList(null);
+        RefreshList(ReferenceEquals(_currentItem, item) ? null : _currentItem?.Id);
     }
 
     private async void OnSearchChanged(object sender, TextChangedEventArgs e)
@@ -638,7 +661,6 @@ public sealed partial class VaultPage : Page
         var hasDetail = _isDraft || _currentItem is not null;
 
         ActionBar.Visibility = hasDetail ? Visibility.Visible : Visibility.Collapsed;
-        DeleteButton.Visibility = hasDetail && !_isDraft ? Visibility.Visible : Visibility.Collapsed;
         SaveActions.Visibility = _isDraft || _isDirty ? Visibility.Visible : Visibility.Collapsed;
     }
 

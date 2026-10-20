@@ -38,25 +38,44 @@
 
         <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="8">
             <Grid>
-                <ListView
-                    x:Name="TrashList"
-                    SelectionMode="Single"
-                    SelectionChanged="OnSelectionChanged">
+                <ListView x:Name="TrashList" SelectionMode="None">
                     <ListView.ItemTemplate>
                         <DataTemplate x:DataType="vm:TrashItemView">
-                            <StackPanel Padding="4,8" Spacing="2">
-                                <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Padding="4,4">
+                                <StackPanel Spacing="2" VerticalAlignment="Center">
                                     <TextBlock
-                                        Text="{x:Bind Username}"
-                                        FontSize="12"
-                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                    <TextBlock
-                                        Text="{x:Bind DeletedText}"
-                                        FontSize="12"
-                                        Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                        Text="{x:Bind Title}"
+                                        FontWeight="SemiBold"
+                                        TextTrimming="CharacterEllipsis" />
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock
+                                            Text="{x:Bind Username}"
+                                            FontSize="12"
+                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        <TextBlock
+                                            Text="{x:Bind DeletedText}"
+                                            FontSize="12"
+                                            Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                    </StackPanel>
                                 </StackPanel>
-                            </StackPanel>
+                                <StackPanel
+                                    Grid.Column="1"
+                                    Orientation="Horizontal"
+                                    Spacing="8"
+                                    VerticalAlignment="Center">
+                                    <Button
+                                        Content="恢复"
+                                        Padding="12,3"
+                                        FontSize="12"
+                                        Click="OnRestoreClick" />
+                                    <Button
+                                        Content="彻底删除"
+                                        Style="{StaticResource DestructiveButtonStyle}"
+                                        Padding="12,3"
+                                        FontSize="12"
+                                        Click="OnPurgeClick" />
+                                </StackPanel>
+                            </Grid>
                         </DataTemplate>
                     </ListView.ItemTemplate>
                 </ListView>
@@ -78,22 +97,6 @@
             </Grid>
         </Border>
 
-        <Grid Grid.Row="3" ColumnDefinitions="*,Auto" ColumnSpacing="8">
-            <TextBlock x:Name="StatusText" Style="{StaticResource HintTextStyle}" VerticalAlignment="Center" />
-            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                <Button
-                    x:Name="RestoreButton"
-                    AutomationProperties.AutomationId="RestoreButton"
-                    Content="恢复"
-                    IsEnabled="False"
-                    Click="OnRestoreClick" />
-                <Button
-                    x:Name="PurgeButton"
-                    AutomationProperties.AutomationId="PurgeButton"
-                    Content="彻底删除"
-                    IsEnabled="False"
-                    Click="OnPurgeClick" />
-            </StackPanel>
-        </Grid>
+        <TextBlock x:Name="StatusText" Grid.Row="3" Style="{StaticResource HintTextStyle}" />
     </Grid>
 </Page>
