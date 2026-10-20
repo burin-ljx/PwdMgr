@@ -44,11 +44,17 @@ docs/ui/                       界面截图
 ## 构建
 
 ```powershell
-.\build.ps1                      # Debug
+.\build.ps1                      # Debug（PowerShell 执行策略允许运行时）
 .\build.ps1 -Configuration Release
 ```
 
-脚本会用 `vswhere` 找到 Visual Studio 的 MSBuild 再编译整个解决方案。
+如果系统把执行策略设成 `AllSigned`（提示“脚本未数字签名”），改用批处理脚本，它不受执行策略限制：
+
+```cmd
+build.cmd
+```
+
+两个脚本都会用 `vswhere` 找到 Visual Studio 的 MSBuild 再编译整个解决方案。也可以在 Visual Studio 里直接打开 `PwdMgr.sln` 构建。
 
 只构建不依赖界面的部分（Core / CLI / 测试）时，仍然可以用 dotnet CLI：
 
