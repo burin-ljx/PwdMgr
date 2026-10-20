@@ -48,7 +48,7 @@ public sealed partial class WelcomePage : Page
         if (result.VaultPath is { } vaultPath)
         {
             DropErrorBar.IsOpen = false;
-            App.Shell.NavigateToUnlock(vaultPath);
+            App.Shell.NavigateToUnlock(vaultPath, suggestKey: true);
             return;
         }
 

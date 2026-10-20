@@ -27,7 +27,13 @@
                 <TextBlock x:Name="VaultNameText" FontSize="22" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                 <TextBlock x:Name="VaultMetaText" Style="{StaticResource HintTextStyle}" TextTrimming="CharacterEllipsis" />
             </StackPanel>
-            <Button Grid.Column="1" Click="OnLockClick" MinWidth="88" ToolTipService.ToolTip="锁定后需要重新选择钥匙文件">
+            <Button
+                Grid.Column="1"
+                AutomationProperties.Name="上锁"
+                AutomationProperties.AutomationId="LockButton"
+                Click="OnLockClick"
+                MinWidth="88"
+                ToolTipService.ToolTip="锁定后需要重新选择钥匙文件">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <FontIcon Glyph="&#xE72E;" FontSize="13" />
                     <TextBlock Text="上锁" />
@@ -246,6 +252,11 @@
                                             <FontIcon Glyph="&#xE7B3;" FontSize="14" />
                                         </ToggleButton>
                                     </Grid>
+                                    <TextBlock
+                                        x:Name="PasswordStrengthText"
+                                        AutomationProperties.AutomationId="PasswordStrengthText"
+                                        Style="{StaticResource HintTextStyle}"
+                                        Text="强度：—" />
                                 </StackPanel>
 
                                 <StackPanel Spacing="4">

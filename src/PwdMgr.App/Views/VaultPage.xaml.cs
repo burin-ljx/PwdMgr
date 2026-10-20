@@ -434,7 +434,31 @@ public sealed partial class VaultPage : Page
 
     private void OnFieldChanged(object sender, TextChangedEventArgs e) => MarkDirty();
 
-    private void OnPasswordChanged(object sender, RoutedEventArgs e) => MarkDirty();
+    private void OnPasswordChanged(object sender, RoutedEventArgs e)
+    {
+        UpdatePasswordStrength();
+        MarkDirty();
+    }
+
+    /// <summary>密码框下方的强度提示：弱/中等/强/很强 + 估算比特数。</summary>
+    private void UpdatePasswordStrength()
+    {
+        var report = PasswordStrength.Evaluate(EditPassword.Password);
+
+        PasswordStrengthText.Text = report.Length == 0
+            ? "强度：—（还没有密码）"
+            : $"强度：{report.Label}（{report.Length} 位，约 {report.Bits:0} 比特）";
+
+        var styleKey = report.Label switch
+        {
+            "弱" => "StrengthWeakStyle",
+            "中等" => "StrengthMediumStyle",
+            "强" or "很强" => "StrengthStrongStyle",
+            _ => "HintTextStyle",
+        };
+
+        PasswordStrengthText.Style = (Style)Application.Current.Resources[styleKey];
+    }
 
     private void OnToggleRevealClick(object sender, RoutedEventArgs e)
     {
@@ -595,6 +619,8 @@ public sealed partial class VaultPage : Page
         RevealButton.IsChecked = false;
         EditPassword.PasswordRevealMode = PasswordRevealMode.Hidden;
 
+        UpdatePasswordStrength();
+
         UpdateActionBar();
         _isLoading = false;
 
@@ -632,6 +658,8 @@ public sealed partial class VaultPage : Page
 
         RevealButton.IsChecked = false;
         EditPassword.PasswordRevealMode = PasswordRevealMode.Hidden;
+
+        UpdatePasswordStrength();
 
         _baseline = CaptureForm();
         UpdateActionBar();

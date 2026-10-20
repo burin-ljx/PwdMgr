@@ -24,15 +24,23 @@ public sealed partial class UnlockVaultPage : Page
     {
         base.OnNavigatedTo(e);
 
-        if (e.Parameter is string vaultPath && !string.IsNullOrWhiteSpace(vaultPath))
+        if (e.Parameter is not UnlockNavigationArgs args || string.IsNullOrWhiteSpace(args.VaultPath))
         {
-            ViewModel.VaultPath = vaultPath;
+            return;
+        }
 
-            var suggestedKeyPath = FilePickerService.SuggestKeyPath(vaultPath);
-            if (File.Exists(suggestedKeyPath))
-            {
-                ViewModel.KeyPath = suggestedKeyPath;
-            }
+        ViewModel.VaultPath = args.VaultPath;
+
+        // 从“上锁”回来时不带钥匙路径，必须重新选择钥匙文件。
+        if (!args.SuggestKey)
+        {
+            return;
+        }
+
+        var suggestedKeyPath = FilePickerService.SuggestKeyPath(args.VaultPath);
+        if (File.Exists(suggestedKeyPath))
+        {
+            ViewModel.KeyPath = suggestedKeyPath;
         }
     }
 

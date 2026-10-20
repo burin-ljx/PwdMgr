@@ -115,7 +115,12 @@ public sealed class AppShell
 
     public void NavigateToCreate() => Frame.Navigate(typeof(CreateVaultPage));
 
-    public void NavigateToUnlock(string? vaultPath = null) => Frame.Navigate(typeof(UnlockVaultPage), vaultPath);
+    public void NavigateToUnlock(string? vaultPath = null, bool suggestKey = false) =>
+        Frame.Navigate(
+            typeof(UnlockVaultPage),
+            new UnlockNavigationArgs(
+                vaultPath ?? string.Empty,
+                suggestKey && !string.IsNullOrWhiteSpace(vaultPath)));
 
     public void NavigateToTrash() => Frame.Navigate(typeof(TrashPage));
 
@@ -161,13 +166,13 @@ public sealed class AppShell
         catch (VaultException ex)
         {
             StartupLog.Write($"StartAsync：打开失败 {ex.Code} {ex.Message}");
-            NavigateToUnlock(arguments[0]);
+            NavigateToUnlock(arguments[0], suggestKey: true);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException
                                       or InvalidOperationException or XamlParseException)
         {
             StartupLog.Write("StartAsync：意外失败", ex);
-            NavigateToUnlock(arguments[0]);
+            NavigateToUnlock(arguments[0], suggestKey: true);
         }
     }
 

@@ -46,6 +46,23 @@
                 <Setter Property="TextWrapping" Value="Wrap" />
             </Style>
 
+            <!-- 密码强度提示：用主题色区分强弱 -->
+            <Style x:Key="StrengthWeakStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="Foreground" Value="{ThemeResource SystemFillColorCriticalBrush}" />
+                <Setter Property="TextWrapping" Value="Wrap" />
+            </Style>
+            <Style x:Key="StrengthMediumStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="Foreground" Value="{ThemeResource SystemFillColorCautionBrush}" />
+                <Setter Property="TextWrapping" Value="Wrap" />
+            </Style>
+            <Style x:Key="StrengthStrongStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="Foreground" Value="{ThemeResource SystemFillColorSuccessBrush}" />
+                <Setter Property="TextWrapping" Value="Wrap" />
+            </Style>
+
             <!-- 危险操作按钮：红底白字，悬停/按下用透明度区分（默认模板会覆盖背景色，所以自带模板） -->
             <Style x:Key="DestructiveButtonStyle" TargetType="Button">
                 <Setter Property="Background" Value="#C42B1C" />
