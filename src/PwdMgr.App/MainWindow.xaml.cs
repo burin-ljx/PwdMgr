@@ -51,6 +51,10 @@ public sealed partial class MainWindow : Window
         }
 
         WindowHelper.CenterAndResize(this, 1120, 760);
+
+        // 页面内容最窄需要约 860 逻辑像素（创建/打开页固定 760 + 内边距），
+        // 低于这个尺寸会被裁切，这里直接限制窗口最小值。
+        WindowHelper.SetMinimumSize(this, 900, 640);
     }
 
     /// <summary>

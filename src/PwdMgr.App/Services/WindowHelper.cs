@@ -27,6 +27,19 @@ internal static class WindowHelper
         appWindow.MoveAndResize(new RectInt32(x, y, width, height));
     }
 
+    /// <summary>限制窗口的最小尺寸（逻辑像素），避免被拖窄后内容被裁切。</summary>
+    public static void SetMinimumSize(Window window, int logicalWidth, int logicalHeight)
+    {
+        var handle = WindowNative.GetWindowHandle(window);
+        var scale = GetDpiForWindow(handle) / 96.0;
+
+        if (window.AppWindow.Presenter is OverlappedPresenter presenter)
+        {
+            presenter.PreferredMinimumWidth = (int)(logicalWidth * scale);
+            presenter.PreferredMinimumHeight = (int)(logicalHeight * scale);
+        }
+    }
+
     [DllImport("user32.dll")]
     private static extern uint GetDpiForWindow(IntPtr hwnd);
 }

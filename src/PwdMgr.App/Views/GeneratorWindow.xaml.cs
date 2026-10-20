@@ -18,6 +18,7 @@ public sealed partial class GeneratorWindow : Window
         Title = "密码生成器";
         AppWindow.Resize(new SizeInt32(560, 640));
         AppWindow.Move(CenteredPosition(560, 640));
+        WindowHelper.SetMinimumSize(this, 460, 560);
 
         _isLoading = true;
         LengthSlider.Minimum = PasswordGenerator.MinLength;
