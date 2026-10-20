@@ -29,6 +29,14 @@ public static class FilePickerService
     public static string? PickKeyToCreate(Window window, string suggestedName) =>
         NativeFileDialog.ShowSave(window, "保存钥匙文件", KeySaveFilter, "key", suggestedName);
 
+    /// <summary>选择备份文件的保存位置。</summary>
+    public static string? PickBackupTarget(Window window, string suggestedName) =>
+        NativeFileDialog.ShowSave(window, "保存密码库备份", VaultSaveFilter, "pwdb", suggestedName);
+
+    /// <summary>选择要恢复的备份文件。</summary>
+    public static string? PickBackupToRestore(Window window) =>
+        NativeFileDialog.ShowOpen(window, "选择备份文件", VaultFilter);
+
     /// <summary>根据密码库路径推导钥匙路径：同目录、同名、扩展名 .key。</summary>
     public static string SuggestKeyPath(string vaultPath)
     {

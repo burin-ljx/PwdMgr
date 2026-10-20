@@ -52,6 +52,12 @@ public sealed partial class VaultPage : Page
 
         UpdateEmptyState();
         LoadItem(null);
+
+        if (App.Shell.Notice is { } notice)
+        {
+            App.Shell.Notice = null;
+            ShowTransient(notice, InfoBarSeverity.Success);
+        }
     }
 
     protected override void OnNavigatedFrom(NavigationEventArgs e)
@@ -167,6 +173,102 @@ public sealed partial class VaultPage : Page
     {
         ClipboardService.Clear();
         ShowTransient("剪贴板已清空。", InfoBarSeverity.Success);
+    }
+
+    private async void OnBackupClick(object sender, RoutedEventArgs e)
+    {
+        if (_session is null || !await SaveCurrentAsync(allowDiscardEmptyDraft: true))
+        {
+            return;
+        }
+
+        var suggested = $"{Path.GetFileNameWithoutExtension(_session.VaultPath)}-备份-{DateTime.Now:yyyyMMdd-HHmm}.pwdb";
+        var target = FilePickerService.PickBackupTarget(App.ShellWindow, suggested);
+
+        if (target is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var size = await _session.CreateBackupAsync(target);
+            ShowTransient(
+                $"备份已保存（{size / 1024.0:0.#} KB）：{target}。请同时妥善保管钥匙文件。",
+                InfoBarSeverity.Success);
+        }
+        catch (VaultException ex)
+        {
+            ShowError($"备份失败：{ex.Message}");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            ShowError($"备份失败：{ex.Message}");
+        }
+    }
+
+    private async void OnVerifyClick(object sender, RoutedEventArgs e)
+    {
+        if (_session is null || !await SaveCurrentAsync(allowDiscardEmptyDraft: true))
+        {
+            return;
+        }
+
+        try
+        {
+            var report = await _session.VerifyAsync();
+            ShowTransient(
+                $"校验通过：有效条目 {report.ActiveCount} 条，回收站 {report.DeletedCount} 条，文件 {report.FileSize / 1024.0:0.#} KB。",
+                InfoBarSeverity.Success);
+        }
+        catch (VaultException ex)
+        {
+            ShowError($"校验失败：{ex.Message}");
+        }
+    }
+
+    private async void OnRestoreClick(object sender, RoutedEventArgs e)
+    {
+        if (_session is null || !await SaveCurrentAsync(allowDiscardEmptyDraft: true))
+        {
+            return;
+        }
+
+        var backup = FilePickerService.PickBackupToRestore(App.ShellWindow);
+        if (backup is null)
+        {
+            return;
+        }
+
+        var confirmed = await ConfirmAsync(
+            "从备份恢复？",
+            $"当前密码库内容将被覆盖：{backup}{Environment.NewLine}覆盖前的版本会保留为 .bak 文件。",
+            "恢复");
+
+        if (!confirmed)
+        {
+            return;
+        }
+
+        var vaultPath = _session.VaultPath;
+        var keyPath = _session.KeyFilePath;
+
+        try
+        {
+            await VaultSession.RestoreFromFileAsync(vaultPath, keyPath, backup);
+        }
+        catch (VaultException ex)
+        {
+            ShowError($"恢复失败：{ex.Message}");
+            return;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            ShowError($"恢复失败：{ex.Message}");
+            return;
+        }
+
+        await App.Shell.RestartAsync("已从备份恢复。");
     }
 
     private void CopyToClipboard(string value, string what)

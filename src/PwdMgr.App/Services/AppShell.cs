@@ -62,7 +62,33 @@ public sealed class AppShell
     /// </summary>
     public Func<Task<bool>>? PendingEditsCommitter { get; set; }
 
+    /// <summary>打开密码库后要显示的一次性提示（例如“已从备份恢复”）。</summary>
+    public string? Notice { get; set; }
+
     private Frame Frame => _window.RootFrame;
+
+    /// <summary>关闭当前会话并立即重新打开同一份密码库（用于“从备份恢复”之后）。</summary>
+    public async Task RestartAsync(string? notice = null)
+    {
+        var session = Session;
+        if (session is null)
+        {
+            return;
+        }
+
+        var vaultPath = session.VaultPath;
+        var keyPath = session.KeyFilePath;
+
+        _autoLock.Stop();
+        Session = null;
+        PendingEditsCommitter = null;
+
+        await session.DisposeAsync();
+
+        var reopened = await VaultSession.OpenAsync(vaultPath, keyPath);
+        Notice = notice;
+        await EnterVaultAsync(reopened);
+    }
 
     /// <summary>打开一个已解锁的会话并进入主界面（顺带清理过期的回收站条目）。</summary>
     public async Task EnterVaultAsync(VaultSession session)

@@ -285,6 +285,164 @@ public sealed class VaultSession : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// 自检：重新从磁盘读一遍密码库，用当前钥匙解开并核对库标识与钥匙文件，
+    /// 返回条目数量与文件大小。任何一步失败都会抛出带错误码的 <see cref="VaultException"/>。
+    /// </summary>
+    public async Task<VaultCheckReport> VerifyAsync(CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        byte[] bytes;
+        try
+        {
+            bytes = await File.ReadAllBytesAsync(VaultPath, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            throw new VaultException(VaultErrorCode.SaveFailed, $"无法读取密码库文件：{VaultPath}", ex);
+        }
+
+        var opened = DecryptVault(bytes, _keyPair);
+        try
+        {
+            if (opened.Document.VaultId != Document.VaultId)
+            {
+                throw new VaultException(VaultErrorCode.FileCorrupted, "磁盘上的密码库与当前会话不是同一个库。");
+            }
+
+            using var keyFromDisk = KeyFileStore.Load(KeyFilePath);
+            if (!string.Equals(keyFromDisk.KeyId, KeyId, StringComparison.Ordinal))
+            {
+                throw new VaultException(VaultErrorCode.KeyMismatch, "磁盘上的钥匙文件与当前会话使用的钥匙不一致。");
+            }
+
+            return new VaultCheckReport(
+                opened.Document.GetActiveItems().Count,
+                opened.Document.GetDeletedItems().Count,
+                bytes.LongLength);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(opened.DataKey);
+        }
+    }
+
+    /// <summary>
+    /// 导出一份备份到指定路径：先把未保存的修改落盘，再复制当前文件并校验副本能打开。
+    /// 返回值是备份文件大小。
+    /// </summary>
+    /// <exception cref="VaultException">写入或校验失败。</exception>
+    public async Task<long> CreateBackupAsync(string targetPath, CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        var targetFullPath = Path.GetFullPath(targetPath);
+        if (string.Equals(targetFullPath, VaultPath, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException("备份路径不能和密码库本身相同。", nameof(targetPath));
+        }
+
+        if (Document.IsDirty)
+        {
+            await SaveAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        byte[] bytes;
+        try
+        {
+            bytes = await File.ReadAllBytesAsync(VaultPath, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            throw new VaultException(VaultErrorCode.SaveFailed, $"无法读取密码库文件：{VaultPath}", ex);
+        }
+
+        var dataKey = _dataKey ?? throw new ObjectDisposedException(nameof(VaultSession));
+        var opened = DecryptVault(bytes, _keyPair);
+        CryptographicOperations.ZeroMemory(opened.DataKey);
+
+        try
+        {
+            EnsureDirectory(targetFullPath);
+            await ExecuteWithRetryAsync(
+                    () => AtomicFile.WriteInPlaceAsync(targetFullPath, bytes, cancellationToken))
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            throw new VaultException(
+                VaultErrorCode.SaveFailed,
+                $"无法写入备份文件：{targetFullPath}{Environment.NewLine}{ex.Message}",
+                ex);
+        }
+
+        VerifyFile(targetFullPath, dataKey, Document.VaultId);
+        return bytes.LongLength;
+    }
+
+    /// <summary>
+    /// 用备份文件覆盖密码库。备份必须是同一个钥匙解开的有效密码库；
+    /// 覆盖后调用方应重新打开会话（内存中的文档已经过期）。
+    /// </summary>
+    /// <exception cref="VaultException">备份无效、钥匙不匹配或写入失败。</exception>
+    public static async Task RestoreFromFileAsync(
+        string vaultPath,
+        string keyFilePath,
+        string backupPath,
+        CancellationToken cancellationToken = default)
+    {
+        var vaultFullPath = Path.GetFullPath(vaultPath);
+        var keyFullPath = Path.GetFullPath(keyFilePath);
+        var backupFullPath = Path.GetFullPath(backupPath);
+
+        if (string.Equals(vaultFullPath, backupFullPath, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException("备份文件不能就是密码库本身。", nameof(backupPath));
+        }
+
+        if (!File.Exists(backupFullPath))
+        {
+            throw new VaultException(VaultErrorCode.VaultFileNotFound, $"找不到备份文件：{backupFullPath}");
+        }
+
+        using var keyPair = KeyFileStore.Load(keyFullPath);
+
+        byte[] bytes;
+        try
+        {
+            bytes = await File.ReadAllBytesAsync(backupFullPath, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            throw new VaultException(VaultErrorCode.SaveFailed, $"无法读取备份文件：{backupFullPath}", ex);
+        }
+
+        var opened = DecryptVault(bytes, keyPair);
+        try
+        {
+            try
+            {
+                await ExecuteWithRetryAsync(
+                        () => AtomicFile.WriteAsync(vaultFullPath, bytes, cancellationToken))
+                    .ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                throw new VaultException(
+                    VaultErrorCode.SaveFailed,
+                    $"无法写回密码库文件：{vaultFullPath}{Environment.NewLine}{ex.Message}",
+                    ex);
+            }
+
+            VerifyFile(vaultFullPath, opened.DataKey, opened.Document.VaultId);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(opened.DataKey);
+        }
+    }
+
     /// <summary>清空敏感数据、释放钥匙与文件锁。</summary>
     public async ValueTask DisposeAsync()
     {
