@@ -131,6 +131,25 @@ public sealed class PasswordGeneratorTests
     }
 
     [Fact]
+    public void Generate_CustomCharactersExcludeWhitespace()
+    {
+        var options = new PasswordOptions
+        {
+            Length = 12,
+            IncludeUppercase = false,
+            IncludeLowercase = false,
+            IncludeDigits = false,
+            IncludeSymbols = false,
+            CustomCharacters = " A\tB\u3000C ",
+        };
+
+        Assert.Equal("ABC", PasswordGenerator.BuildPools(options)[0]);
+
+        var password = PasswordGenerator.Generate(options);
+        Assert.All(password, character => Assert.Contains(character, "ABC"));
+    }
+
+    [Fact]
     public void Generate_CustomCharactersIgnoreAmbiguousFilter()
     {
         var options = new PasswordOptions { Length = 16, CustomCharacters = "IOl01", ExcludeAmbiguous = true };

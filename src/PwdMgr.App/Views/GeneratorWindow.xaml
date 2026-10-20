@@ -55,7 +55,7 @@
             <TextBox
                 x:Name="CustomCharsBox"
                 AutomationProperties.AutomationId="CustomCharsBox"
-                PlaceholderText="可选，例如 甲乙丙 或 ★※；填了就保证至少出现一个"
+                PlaceholderText="可选，例如 甲乙丙 或 ★※；空格会被忽略，填了就保证至少出现一个"
                 MaxLength="64"
                 TextChanged="OnCustomCharsChanged" />
         </StackPanel>

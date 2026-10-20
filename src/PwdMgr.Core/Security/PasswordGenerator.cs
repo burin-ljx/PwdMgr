@@ -123,7 +123,7 @@ public static class PasswordGenerator
         }
     }
 
-    /// <summary>自定义字符：去掉控制字符与重复项，其余原样保留（不受“排除易混字符”影响）。</summary>
+    /// <summary>自定义字符：去掉空白与控制字符、重复项，其余原样保留（不受“排除易混字符”影响）。</summary>
     private static string NormalizeCustom(string custom)
     {
         if (string.IsNullOrEmpty(custom))
@@ -136,7 +136,7 @@ public static class PasswordGenerator
 
         foreach (var character in custom)
         {
-            if (char.IsControl(character))
+            if (char.IsWhiteSpace(character) || char.IsControl(character))
             {
                 continue;
             }
