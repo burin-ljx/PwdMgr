@@ -53,7 +53,7 @@ public sealed partial class CreateVaultPage : Page
             session = await VaultSession.CreateAsync(ViewModel.VaultPath, ViewModel.KeyPath);
             await ShowCreatedDialogAsync(session);
 
-            App.Shell.EnterVault(session);
+            await App.Shell.EnterVaultAsync(session);
             session = null;
         }
         catch (VaultException ex)

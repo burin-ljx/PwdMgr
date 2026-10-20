@@ -9,8 +9,21 @@ namespace PwdMgr.App.Services;
 /// 应用级外壳：持有当前解锁的 <see cref="VaultSession"/>，并在页面之间导航。
 /// 页面不要自己保存会话，统一从这里取，避免上锁后仍有页面握着密钥。
 /// </summary>
-public sealed class AppShell(MainWindow window)
+public sealed class AppShell
 {
+    /// <summary>回收站条目的保留时长。</summary>
+    private static readonly TimeSpan TrashRetention = TimeSpan.FromDays(30);
+
+    private readonly MainWindow _window;
+    private readonly AutoLockService _autoLock;
+
+    public AppShell(MainWindow window)
+    {
+        _window = window;
+        _autoLock = new AutoLockService(window.DispatcherQueue, ReadIdleLimit());
+        _autoLock.LockRequested += OnAutoLockRequested;
+    }
+
     /// <summary>当前解锁的密码库；未解锁时为 <see langword="null"/>。</summary>
     public VaultSession? Session { get; private set; }
 
@@ -20,19 +33,38 @@ public sealed class AppShell(MainWindow window)
     /// </summary>
     public Func<Task<bool>>? PendingEditsCommitter { get; set; }
 
-    private Frame Frame => window.RootFrame;
+    private Frame Frame => _window.RootFrame;
 
-    /// <summary>打开一个已解锁的会话并进入主界面。</summary>
-    public void EnterVault(VaultSession session)
+    /// <summary>打开一个已解锁的会话并进入主界面（顺带清理过期的回收站条目）。</summary>
+    public async Task EnterVaultAsync(VaultSession session)
     {
         Session = session;
+
+        if (session.Document.PurgeExpiredTrash(TrashRetention) > 0)
+        {
+            try
+            {
+                await session.SaveAsync();
+            }
+            catch (VaultException ex)
+            {
+                StartupLog.Write("清理回收站失败", ex);
+            }
+        }
+
         Frame.Navigate(typeof(VaultPage));
+        _autoLock.Start();
     }
+
     public void NavigateToWelcome() => Frame.Navigate(typeof(WelcomePage));
 
     public void NavigateToCreate() => Frame.Navigate(typeof(CreateVaultPage));
 
     public void NavigateToUnlock(string? vaultPath = null) => Frame.Navigate(typeof(UnlockVaultPage), vaultPath);
+
+    public void NavigateToTrash() => Frame.Navigate(typeof(TrashPage));
+
+    public void NavigateBackToVault() => Frame.Navigate(typeof(VaultPage));
 
     /// <summary>上锁：销毁会话并回到解锁页。</summary>
     public async Task LockAsync()
@@ -43,6 +75,7 @@ public sealed class AppShell(MainWindow window)
             return;
         }
 
+        _autoLock.Stop();
         Session = null;
         PendingEditsCommitter = null;
         var vaultPath = session.VaultPath;
@@ -66,7 +99,7 @@ public sealed class AppShell(MainWindow window)
             var session = await VaultSession.OpenAsync(arguments[0], arguments[1]);
             StartupLog.Write("StartAsync：打开成功，准备进入主界面");
 
-            EnterVault(session);
+            await EnterVaultAsync(session);
             StartupLog.Write("StartAsync：已导航到主界面");
         }
         catch (VaultException ex)
@@ -80,5 +113,35 @@ public sealed class AppShell(MainWindow window)
             StartupLog.Write("StartAsync：意外失败", ex);
             NavigateToUnlock(arguments[0]);
         }
+    }
+
+    private async void OnAutoLockRequested()
+    {
+        StartupLog.Write("OnAutoLockRequested：开始处理");
+
+        if (Session is null)
+        {
+            return;
+        }
+
+        if (PendingEditsCommitter is { } commit && !await commit())
+        {
+            StartupLog.Write("OnAutoLockRequested：提交修改失败，暂不锁定");
+            // 保存失败时不锁定，但也不算“已锁定”，下次闲置会再次尝试。
+            _autoLock.ResetTrigger();
+            return;
+        }
+
+        StartupLog.Write("OnAutoLockRequested：执行锁定");
+        await LockAsync();
+    }
+
+    /// <summary>闲置锁定阈值，默认 5 分钟；开发时可用 PWDMR_IDLE_SECONDS 覆盖。</summary>
+    private static TimeSpan ReadIdleLimit()
+    {
+        var raw = Environment.GetEnvironmentVariable("PWDMR_IDLE_SECONDS");
+        return int.TryParse(raw, out var seconds) && seconds > 0
+            ? TimeSpan.FromSeconds(seconds)
+            : TimeSpan.FromMinutes(5);
     }
 }

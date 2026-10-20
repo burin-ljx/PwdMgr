@@ -37,8 +37,13 @@
                 Width="380"
                 HorizontalAlignment="Left"
                 TextChanged="OnSearchChanged" />
-            <Button Grid.Column="1" Content="新建条目" IsEnabled="False" ToolTipService.ToolTip="下一阶段开放" />
-            <Button Grid.Column="2" Content="生成器" IsEnabled="False" ToolTipService.ToolTip="下一阶段开放" />
+            <Button
+                x:Name="NewItemButton"
+                Grid.Column="1"
+                AutomationProperties.AutomationId="NewItemButton"
+                Content="新建条目"
+                Click="OnNewItemClick" />
+            <Button Grid.Column="2" Content="回收站" Click="OnTrashClick" />
         </Grid>
 
         <!-- 列表 + 详情 -->
@@ -80,6 +85,10 @@
                         <TextBlock
                             Text="还没有条目"
                             Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock
+                            Text="点击上方“新建条目”添加第一个"
+                            FontSize="12"
+                            Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
                     </StackPanel>
                 </Grid>
             </Border>
@@ -171,22 +180,35 @@
                         </ScrollViewer>
 
                         <Border
-                            x:Name="SaveBar"
+                            x:Name="ActionBar"
                             Grid.Row="1"
                             Margin="0,12,0,0"
                             Padding="0,12,0,0"
                             BorderThickness="0,1,0,0"
                             BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
                             Visibility="Collapsed">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Grid ColumnDefinitions="Auto,*,Auto">
                                 <Button
-                                    x:Name="SaveButton"
-                                    AutomationProperties.AutomationId="SaveButton"
-                                    Content="保存修改"
-                                    Style="{StaticResource AccentButtonStyle}"
-                                    Click="OnSaveClick" />
-                                <Button Content="放弃修改" Click="OnRevertClick" />
-                            </StackPanel>
+                                    x:Name="DeleteButton"
+                                    AutomationProperties.AutomationId="DeleteButton"
+                                    Content="移入回收站"
+                                    Click="OnDeleteClick"
+                                    Visibility="Collapsed" />
+                                <StackPanel
+                                    x:Name="SaveActions"
+                                    Grid.Column="2"
+                                    Orientation="Horizontal"
+                                    Spacing="8"
+                                    Visibility="Collapsed">
+                                    <Button
+                                        x:Name="SaveButton"
+                                        AutomationProperties.AutomationId="SaveButton"
+                                        Content="保存修改"
+                                        Style="{StaticResource AccentButtonStyle}"
+                                        Click="OnSaveClick" />
+                                    <Button Content="放弃修改" Click="OnRevertClick" />
+                                </StackPanel>
+                            </Grid>
                         </Border>
                     </Grid>
 

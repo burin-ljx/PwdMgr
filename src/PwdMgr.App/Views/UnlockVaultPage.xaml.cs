@@ -63,7 +63,7 @@ public sealed partial class UnlockVaultPage : Page
         try
         {
             session = await VaultSession.OpenAsync(ViewModel.VaultPath, ViewModel.KeyPath);
-            App.Shell.EnterVault(session);
+            await App.Shell.EnterVaultAsync(session);
             session = null;
         }
         catch (VaultException ex)

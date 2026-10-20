@@ -13,9 +13,11 @@ public sealed partial class VaultPage : Page
     private VaultSession? _session;
     private PasswordItem? _currentItem;
     private FormSnapshot? _baseline;
+    private bool _isDraft;
     private bool _isDirty;
     private bool _isLoading;
     private bool _suppressSelectionChange;
+    private bool _lastSaveCreatedItem;
 
     public VaultPage()
     {
@@ -40,8 +42,8 @@ public sealed partial class VaultPage : Page
         ItemList.ItemsSource = _viewModel.Items;
         StatusText.Text = _viewModel.StatusText;
 
-        // 关窗时由 MainWindow 调用，避免把未保存的修改丢掉。
-        App.Shell.PendingEditsCommitter = SaveCurrentAsync;
+        // 关窗或自动锁定时由外壳调用，先提交未保存的修改。
+        App.Shell.PendingEditsCommitter = () => SaveCurrentAsync(allowDiscardEmptyDraft: true);
 
         UpdateEmptyState();
         LoadItem(null);
@@ -53,6 +55,60 @@ public sealed partial class VaultPage : Page
         App.Shell.PendingEditsCommitter = null;
     }
 
+    private async void OnNewItemClick(object sender, RoutedEventArgs e)
+    {
+        if (_session is null)
+        {
+            return;
+        }
+
+        if (!await SaveCurrentAsync(allowDiscardEmptyDraft: false))
+        {
+            return;
+        }
+
+        StartDraft();
+    }
+
+    private async void OnTrashClick(object sender, RoutedEventArgs e)
+    {
+        if (!await SaveCurrentAsync(allowDiscardEmptyDraft: true))
+        {
+            return;
+        }
+
+        App.Shell.NavigateToTrash();
+    }
+
+    private async void OnDeleteClick(object sender, RoutedEventArgs e)
+    {
+        if (_session is null || _currentItem is null)
+        {
+            return;
+        }
+
+        var item = _currentItem;
+        SaveErrorBar.IsOpen = false;
+
+        if (!_session.Document.MoveToTrash(item.Id))
+        {
+            return;
+        }
+
+        try
+        {
+            await _session.SaveAsync();
+        }
+        catch (VaultException ex)
+        {
+            _session.Document.Restore(item.Id);
+            ShowError(ex.Message);
+            return;
+        }
+
+        RefreshList(null);
+    }
+
     private async void OnSearchChanged(object sender, TextChangedEventArgs e)
     {
         if (_viewModel is null || _session is null)
@@ -60,8 +116,8 @@ public sealed partial class VaultPage : Page
             return;
         }
 
-        // 搜索会重建列表，先把未保存的修改写回，避免用户以为改动还在。
-        if (!await SaveCurrentAsync())
+        // 搜索会重建列表，先把未保存的修改写回。
+        if (!await SaveCurrentAsync(allowDiscardEmptyDraft: true))
         {
             return;
         }
@@ -77,17 +133,24 @@ public sealed partial class VaultPage : Page
         }
 
         var next = ItemList.SelectedItem as PasswordItem;
-        if (ReferenceEquals(next, _currentItem))
+
+        if (!_isDraft && ReferenceEquals(next, _currentItem))
         {
             return;
         }
 
-        // 切换条目前自动保存，失败就退回原来的选中项。
-        if (!await SaveCurrentAsync())
+        _lastSaveCreatedItem = false;
+        if (!await SaveCurrentAsync(allowDiscardEmptyDraft: true))
         {
             _suppressSelectionChange = true;
             ItemList.SelectedItem = _currentItem;
             _suppressSelectionChange = false;
+            return;
+        }
+
+        // 新建草稿被保存成了条目：保持选中新建的那条，忽略这次切换。
+        if (_lastSaveCreatedItem)
+        {
             return;
         }
 
@@ -105,10 +168,18 @@ public sealed partial class VaultPage : Page
             : PasswordRevealMode.Hidden;
     }
 
-    private async void OnSaveClick(object sender, RoutedEventArgs e) => await SaveCurrentAsync();
+    private async void OnSaveClick(object sender, RoutedEventArgs e) =>
+        await SaveCurrentAsync(allowDiscardEmptyDraft: false);
 
     private void OnRevertClick(object sender, RoutedEventArgs e)
     {
+        if (_isDraft)
+        {
+            _isDraft = false;
+            LoadItem(null);
+            return;
+        }
+
         if (_currentItem is not null)
         {
             LoadItem(_currentItem);
@@ -117,7 +188,7 @@ public sealed partial class VaultPage : Page
 
     private async void OnLockClick(object sender, RoutedEventArgs e)
     {
-        if (!await SaveCurrentAsync())
+        if (!await SaveCurrentAsync(allowDiscardEmptyDraft: true))
         {
             return;
         }
@@ -125,9 +196,23 @@ public sealed partial class VaultPage : Page
         await App.Shell.LockAsync();
     }
 
-    private async Task<bool> SaveCurrentAsync()
+    /// <summary>
+    /// 提交当前修改。新建草稿会变成正式条目；标题为空的草稿在允许的情况下直接丢弃。
+    /// 返回 false 表示保存失败，调用方应保持当前界面。
+    /// </summary>
+    private async Task<bool> SaveCurrentAsync(bool allowDiscardEmptyDraft)
     {
-        if (_currentItem is null || _session is null || !_isDirty || _baseline is null)
+        if (_session is null)
+        {
+            return true;
+        }
+
+        if (_isDraft)
+        {
+            return await CommitDraftAsync(allowDiscardEmptyDraft);
+        }
+
+        if (_currentItem is null || !_isDirty || _baseline is null)
         {
             return true;
         }
@@ -153,7 +238,6 @@ public sealed partial class VaultPage : Page
             Tags = ParseTags(EditTags.Text),
         };
 
-        // Update 会就地更新内存中的同一条记录，然后由 VaultSession 加密写回文件。
         _session.Document.Update(updated);
 
         try
@@ -167,9 +251,155 @@ public sealed partial class VaultPage : Page
         }
 
         _isDirty = false;
-        SaveBar.Visibility = Visibility.Collapsed;
         RefreshList(_currentItem.Id);
         return true;
+    }
+
+    private async Task<bool> CommitDraftAsync(bool allowDiscardEmptyDraft)
+    {
+        if (_session is null)
+        {
+            return true;
+        }
+
+        var title = EditTitle.Text.Trim();
+        if (title.Length == 0)
+        {
+            if (!allowDiscardEmptyDraft)
+            {
+                ShowError("标题不能为空。");
+                EditTitle.Focus(FocusState.Programmatic);
+                return false;
+            }
+
+            _isDraft = false;
+            LoadItem(null);
+            return true;
+        }
+
+        SaveErrorBar.IsOpen = false;
+
+        var created = _session.Document.Add(
+            title,
+            EditUsername.Text,
+            EditPassword.Password,
+            EditUrl.Text,
+            EditNotes.Text,
+            ParseTags(EditTags.Text));
+
+        try
+        {
+            await _session.SaveAsync();
+        }
+        catch (VaultException ex)
+        {
+            // 保存失败：把刚加进内存的条目撤掉，避免界面和磁盘不一致。
+            _session.Document.Purge(created.Id);
+            ShowError(ex.Message);
+            return false;
+        }
+
+        _isDraft = false;
+        _lastSaveCreatedItem = true;
+        RefreshList(created.Id);
+        return true;
+    }
+
+    private void StartDraft()
+    {
+        _isLoading = true;
+        _isDraft = true;
+        _currentItem = null;
+        _isDirty = false;
+        _baseline = EmptySnapshot;
+        SaveErrorBar.IsOpen = false;
+
+        DetailPanel.Visibility = Visibility.Visible;
+        NoSelectionPanel.Visibility = Visibility.Collapsed;
+
+        EditTitle.Text = string.Empty;
+        EditUsername.Text = string.Empty;
+        EditPassword.Password = string.Empty;
+        EditUrl.Text = string.Empty;
+        EditTags.Text = string.Empty;
+        EditNotes.Text = string.Empty;
+        DetailCreated.Text = "新条目（尚未保存）";
+
+        RevealButton.IsChecked = false;
+        EditPassword.PasswordRevealMode = PasswordRevealMode.Hidden;
+
+        UpdateActionBar();
+        _isLoading = false;
+
+        EditTitle.Focus(FocusState.Programmatic);
+    }
+
+    private void LoadItem(PasswordItem? item)
+    {
+        _isLoading = true;
+        _currentItem = item;
+        _isDraft = false;
+        _isDirty = false;
+        SaveErrorBar.IsOpen = false;
+
+        if (item is null)
+        {
+            DetailPanel.Visibility = Visibility.Collapsed;
+            NoSelectionPanel.Visibility = Visibility.Visible;
+            _baseline = null;
+            UpdateActionBar();
+            _isLoading = false;
+            return;
+        }
+
+        DetailPanel.Visibility = Visibility.Visible;
+        NoSelectionPanel.Visibility = Visibility.Collapsed;
+
+        EditTitle.Text = item.Title;
+        EditUsername.Text = item.Username;
+        EditPassword.Password = item.Password;
+        EditUrl.Text = item.Url;
+        EditTags.Text = string.Join(", ", item.Tags);
+        EditNotes.Text = item.Notes;
+        DetailCreated.Text = $"创建于 {item.CreatedUtc.ToLocalTime():yyyy-MM-dd HH:mm}";
+
+        RevealButton.IsChecked = false;
+        EditPassword.PasswordRevealMode = PasswordRevealMode.Hidden;
+
+        _baseline = CaptureForm();
+        UpdateActionBar();
+        _isLoading = false;
+    }
+
+    private void MarkDirty()
+    {
+        if (_isLoading || _baseline is not { } baseline)
+        {
+            return;
+        }
+
+        if (!_isDraft && _currentItem is null)
+        {
+            return;
+        }
+
+        var dirty = !CaptureForm().Equals(baseline);
+        if (dirty == _isDirty)
+        {
+            return;
+        }
+
+        _isDirty = dirty;
+        UpdateActionBar();
+    }
+
+    private void UpdateActionBar()
+    {
+        var hasDetail = _isDraft || _currentItem is not null;
+
+        ActionBar.Visibility = hasDetail ? Visibility.Visible : Visibility.Collapsed;
+        DeleteButton.Visibility = hasDetail && !_isDraft ? Visibility.Visible : Visibility.Collapsed;
+        SaveActions.Visibility = _isDraft || _isDirty ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void RefreshList(Guid? selectedId)
@@ -194,58 +424,6 @@ public sealed partial class VaultPage : Page
         LoadItem(target);
     }
 
-    private void LoadItem(PasswordItem? item)
-    {
-        _isLoading = true;
-        _currentItem = item;
-        SaveErrorBar.IsOpen = false;
-        _isDirty = false;
-        SaveBar.Visibility = Visibility.Collapsed;
-
-        if (item is null)
-        {
-            DetailPanel.Visibility = Visibility.Collapsed;
-            NoSelectionPanel.Visibility = Visibility.Visible;
-            _baseline = null;
-            _isLoading = false;
-            return;
-        }
-
-        DetailPanel.Visibility = Visibility.Visible;
-        NoSelectionPanel.Visibility = Visibility.Collapsed;
-
-        EditTitle.Text = item.Title;
-        EditUsername.Text = item.Username;
-        EditPassword.Password = item.Password;
-        EditUrl.Text = item.Url;
-        EditTags.Text = string.Join(", ", item.Tags);
-        EditNotes.Text = item.Notes;
-        DetailCreated.Text = $"创建于 {item.CreatedUtc.ToLocalTime():yyyy-MM-dd HH:mm}";
-
-        RevealButton.IsChecked = false;
-        EditPassword.PasswordRevealMode = PasswordRevealMode.Hidden;
-
-        _baseline = CaptureForm();
-        _isLoading = false;
-    }
-
-    private void MarkDirty()
-    {
-        if (_isLoading || _currentItem is null || _baseline is not { } baseline)
-        {
-            return;
-        }
-
-        var dirty = !CaptureForm().Equals(baseline);
-        if (dirty == _isDirty)
-        {
-            return;
-        }
-
-        _isDirty = dirty;
-        SaveBar.Visibility = dirty ? Visibility.Visible : Visibility.Collapsed;
-    }
-
     private FormSnapshot CaptureForm() => new(
         EditTitle.Text.Trim(),
         EditUsername.Text.Trim(),
@@ -254,8 +432,9 @@ public sealed partial class VaultPage : Page
         NormalizeTags(EditTags.Text),
         EditNotes.Text.Trim());
 
-    private static string NormalizeTags(string text) =>
-        string.Join(", ", ParseTags(text));
+    private static FormSnapshot EmptySnapshot => new(string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty);
+
+    private static string NormalizeTags(string text) => string.Join(", ", ParseTags(text));
 
     private static List<string> ParseTags(string text) =>
         text.Split([',', '，'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
