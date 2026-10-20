@@ -19,7 +19,7 @@
                 <TextBlock x:Name="VaultNameText" FontSize="22" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                 <TextBlock x:Name="VaultMetaText" Style="{StaticResource HintTextStyle}" TextTrimming="CharacterEllipsis" />
             </StackPanel>
-            <Button x:Name="LockButton" Grid.Column="1" Click="OnLockClick" MinWidth="88" ToolTipService.ToolTip="锁定后需要重新选择钥匙文件">
+            <Button Grid.Column="1" Click="OnLockClick" MinWidth="88" ToolTipService.ToolTip="锁定后需要重新选择钥匙文件">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <FontIcon Glyph="&#xE72E;" FontSize="13" />
                     <TextBlock Text="上锁" />
@@ -31,13 +31,14 @@
         <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
             <TextBox
                 x:Name="SearchBox"
+                AutomationProperties.AutomationId="SearchBox"
                 PlaceholderText="搜索标题、用户名、网址、备注"
                 Height="34"
                 Width="380"
                 HorizontalAlignment="Left"
                 TextChanged="OnSearchChanged" />
-            <Button x:Name="NewItemButton" Grid.Column="1" Content="新建条目" IsEnabled="False" ToolTipService.ToolTip="下一阶段开放" />
-            <Button x:Name="GeneratorButton" Grid.Column="2" Content="生成器" IsEnabled="False" ToolTipService.ToolTip="下一阶段开放" />
+            <Button Grid.Column="1" Content="新建条目" IsEnabled="False" ToolTipService.ToolTip="下一阶段开放" />
+            <Button Grid.Column="2" Content="生成器" IsEnabled="False" ToolTipService.ToolTip="下一阶段开放" />
         </Grid>
 
         <!-- 列表 + 详情 -->
@@ -85,70 +86,109 @@
 
             <Border Grid.Column="1" Style="{StaticResource CardStyle}">
                 <Grid>
-                    <ScrollViewer x:Name="DetailPanel" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
-                        <StackPanel Spacing="18">
-                            <StackPanel Spacing="4">
-                                <TextBlock
-                                    x:Name="DetailTitle"
-                                    FontSize="22"
+                    <!-- 详情：字段直接可编辑，改动后底部出现保存操作 -->
+                    <Grid x:Name="DetailPanel" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+                            <StackPanel Spacing="10">
+
+                                <InfoBar
+                                    x:Name="SaveErrorBar"
+                                    Severity="Error"
+                                    IsOpen="False"
+                                    IsClosable="True" />
+
+                                <TextBox
+                                    x:Name="EditTitle"
+                                    AutomationProperties.AutomationId="TitleBox"
+                                    PlaceholderText="标题（必填）"
+                                    FontSize="18"
                                     FontWeight="SemiBold"
-                                    TextWrapping="Wrap" />
+                                    TextChanged="OnFieldChanged" />
+
                                 <TextBlock x:Name="DetailCreated" Style="{StaticResource HintTextStyle}" />
-                            </StackPanel>
 
-                            <StackPanel Spacing="4">
-                                <TextBlock Text="用户名" Style="{StaticResource FieldLabelStyle}" />
-                                <TextBlock
-                                    x:Name="DetailUsername"
-                                    FontSize="14"
-                                    TextWrapping="Wrap"
-                                    IsTextSelectionEnabled="True" />
-                            </StackPanel>
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="用户名" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBox
+                                        x:Name="EditUsername"
+                                        AutomationProperties.AutomationId="UsernameBox"
+                                        TextChanged="OnFieldChanged" />
+                                </StackPanel>
 
-                            <StackPanel Spacing="4">
-                                <TextBlock Text="密码" Style="{StaticResource FieldLabelStyle}" />
-                                <StackPanel Orientation="Horizontal" Spacing="10">
-                                    <TextBlock
-                                        x:Name="DetailPassword"
-                                        FontFamily="Consolas"
-                                        FontSize="16"
-                                        VerticalAlignment="Center" />
-                                    <ToggleButton
-                                        x:Name="EyeButton"
-                                        Width="36"
-                                        Height="28"
-                                        Padding="0"
-                                        Click="OnTogglePasswordClick"
-                                        ToolTipService.ToolTip="显示 / 隐藏密码">
-                                        <FontIcon Glyph="&#xE7B3;" FontSize="14" />
-                                    </ToggleButton>
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="密码" Style="{StaticResource FieldLabelStyle}" />
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <PasswordBox
+                                            x:Name="EditPassword"
+                                            AutomationProperties.AutomationId="PasswordBox"
+                                            PasswordChanged="OnPasswordChanged" />
+                                        <ToggleButton
+                                            x:Name="RevealButton"
+                                            Grid.Column="1"
+                                            Width="36"
+                                            Height="30"
+                                            Padding="0"
+                                            Click="OnToggleRevealClick"
+                                            ToolTipService.ToolTip="显示 / 隐藏密码">
+                                            <FontIcon Glyph="&#xE7B3;" FontSize="14" />
+                                        </ToggleButton>
+                                    </Grid>
+                                </StackPanel>
+
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="网址" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBox
+                                        x:Name="EditUrl"
+                                        AutomationProperties.AutomationId="UrlBox"
+                                        TextChanged="OnFieldChanged" />
+                                </StackPanel>
+
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="标签" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBox
+                                        x:Name="EditTags"
+                                        AutomationProperties.AutomationId="TagsBox"
+                                        PlaceholderText="用逗号分隔，例如：工作, 开发"
+                                        TextChanged="OnFieldChanged" />
+                                </StackPanel>
+
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="备注" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBox
+                                        x:Name="EditNotes"
+                                        AutomationProperties.AutomationId="NotesBox"
+                                        AcceptsReturn="True"
+                                        TextWrapping="Wrap"
+                                        MinHeight="72"
+                                        TextChanged="OnFieldChanged" />
                                 </StackPanel>
                             </StackPanel>
+                        </ScrollViewer>
 
-                            <StackPanel Spacing="4">
-                                <TextBlock Text="网址" Style="{StaticResource FieldLabelStyle}" />
-                                <TextBlock
-                                    x:Name="DetailUrl"
-                                    FontSize="14"
-                                    TextWrapping="Wrap"
-                                    IsTextSelectionEnabled="True" />
+                        <Border
+                            x:Name="SaveBar"
+                            Grid.Row="1"
+                            Margin="0,12,0,0"
+                            Padding="0,12,0,0"
+                            BorderThickness="0,1,0,0"
+                            BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                            Visibility="Collapsed">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button
+                                    x:Name="SaveButton"
+                                    AutomationProperties.AutomationId="SaveButton"
+                                    Content="保存修改"
+                                    Style="{StaticResource AccentButtonStyle}"
+                                    Click="OnSaveClick" />
+                                <Button Content="放弃修改" Click="OnRevertClick" />
                             </StackPanel>
-
-                            <StackPanel Spacing="4">
-                                <TextBlock Text="标签" Style="{StaticResource FieldLabelStyle}" />
-                                <TextBlock x:Name="DetailTags" FontSize="14" TextWrapping="Wrap" />
-                            </StackPanel>
-
-                            <StackPanel Spacing="4">
-                                <TextBlock Text="备注" Style="{StaticResource FieldLabelStyle}" />
-                                <TextBlock
-                                    x:Name="DetailNotes"
-                                    FontSize="14"
-                                    TextWrapping="Wrap"
-                                    IsTextSelectionEnabled="True" />
-                            </StackPanel>
-                        </StackPanel>
-                    </ScrollViewer>
+                        </Border>
+                    </Grid>
 
                     <StackPanel
                         x:Name="NoSelectionPanel"

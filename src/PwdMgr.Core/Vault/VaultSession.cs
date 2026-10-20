@@ -75,8 +75,8 @@ public sealed class VaultSession : IAsyncDisposable
         EnsureDistinctPaths(vaultFullPath, keyFullPath);
         EnsureDirectory(vaultFullPath);
         EnsureDirectory(keyFullPath);
-        ThrowIfExists(vaultFullPath, "密码库文件");
-        ThrowIfExists(keyFullPath, "钥匙文件");
+        PrepareTargetFile(vaultFullPath, "密码库文件");
+        PrepareTargetFile(keyFullPath, "钥匙文件");
 
         var lockStream = AcquireLock(vaultFullPath);
         VaultKeyPair? keyPair = null;
@@ -436,12 +436,26 @@ public sealed class VaultSession : IAsyncDisposable
         }
     }
 
-    private static void ThrowIfExists(string path, string description)
+    /// <summary>
+    /// 检查写入目标。系统文件保存对话框会预先创建一个 0 字节文件，这种占位文件直接清掉；
+    /// 非空文件一律拒绝，避免误覆盖已有的密码库或别的数据。
+    /// </summary>
+    private static void PrepareTargetFile(string path, string description)
     {
-        if (File.Exists(path))
+        if (!File.Exists(path))
         {
-            throw new VaultException(VaultErrorCode.TargetExists, $"{description}已存在：{path}");
+            return;
         }
+
+        if (new FileInfo(path).Length == 0)
+        {
+            File.Delete(path);
+            return;
+        }
+
+        throw new VaultException(
+            VaultErrorCode.TargetExists,
+            $"{description}已存在且不是空文件，请换一个文件名或先移除它：{path}");
     }
 
     private static void TryDelete(string path)

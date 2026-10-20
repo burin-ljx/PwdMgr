@@ -14,6 +14,12 @@ public sealed class AppShell(MainWindow window)
     /// <summary>当前解锁的密码库；未解锁时为 <see langword="null"/>。</summary>
     public VaultSession? Session { get; private set; }
 
+    /// <summary>
+    /// 由主界面注册的“提交未保存修改”回调。关窗或上锁前由外壳调用，
+    /// 返回 false 表示保存失败，调用方应保持窗口打开。
+    /// </summary>
+    public Func<Task<bool>>? PendingEditsCommitter { get; set; }
+
     private Frame Frame => window.RootFrame;
 
     /// <summary>打开一个已解锁的会话并进入主界面。</summary>
@@ -22,7 +28,6 @@ public sealed class AppShell(MainWindow window)
         Session = session;
         Frame.Navigate(typeof(VaultPage));
     }
-
     public void NavigateToWelcome() => Frame.Navigate(typeof(WelcomePage));
 
     public void NavigateToCreate() => Frame.Navigate(typeof(CreateVaultPage));
@@ -39,6 +44,7 @@ public sealed class AppShell(MainWindow window)
         }
 
         Session = null;
+        PendingEditsCommitter = null;
         var vaultPath = session.VaultPath;
 
         await session.DisposeAsync();

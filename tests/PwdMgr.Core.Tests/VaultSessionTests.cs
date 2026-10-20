@@ -78,6 +78,35 @@ public sealed class VaultSessionTests
     }
 
     [Fact]
+    public async Task Create_WithZeroLengthPlaceholderFiles_Succeeds()
+    {
+        using var temp = new TestVault();
+
+        // 文件保存对话框会预建 0 字节文件，创建流程必须能接受这种占位文件。
+        await File.WriteAllBytesAsync(temp.VaultPath, []);
+        await File.WriteAllBytesAsync(temp.KeyPath, []);
+
+        await using var session = await VaultSession.CreateAsync(temp.VaultPath, temp.KeyPath);
+        session.Document.Add("GitHub", "alice", "s3cret!pass");
+        await session.SaveAsync();
+
+        Assert.True(new FileInfo(temp.VaultPath).Length > 0);
+        Assert.True(new FileInfo(temp.KeyPath).Length > 0);
+    }
+
+    [Fact]
+    public async Task Create_WithExistingNonEmptyFile_ReportsTargetExists()
+    {
+        using var temp = new TestVault();
+        await File.WriteAllTextAsync(temp.VaultPath, "已有内容");
+
+        var ex = await Assert.ThrowsAsync<VaultException>(() => VaultSession.CreateAsync(temp.VaultPath, temp.KeyPath));
+
+        Assert.Equal(VaultErrorCode.TargetExists, ex.Code);
+        Assert.Equal("已有内容", await File.ReadAllTextAsync(temp.VaultPath));
+    }
+
+    [Fact]
     public async Task Create_WhenTargetExists_ReportsTargetExists()
     {
         using var temp = new TestVault();
