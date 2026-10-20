@@ -16,10 +16,6 @@ TestResults/
 *.pwdb.lock
 *.key
 
-# 临时排查用的命令输出（本地文件，不入库）
-cmdoutput.txt
-agent-creation-commands.txt
-
 # 本地的界面截图（不入库）
 屏幕截图*.png
 
