@@ -63,6 +63,8 @@ if exist "%PRI%" (
 
 copy /y "%ROOT%docs\使用说明.txt" "%STAGE%\README.txt" >nul
 if exist "%ROOT%README.md" copy /y "%ROOT%README.md" "%STAGE%\README.md" >nul
+if exist "%ROOT%LICENSE" copy /y "%ROOT%LICENSE" "%STAGE%\LICENSE" >nul
+if exist "%ROOT%LICENSE.GPL-3.0" copy /y "%ROOT%LICENSE.GPL-3.0" "%STAGE%\LICENSE.GPL-3.0" >nul
 
 if exist "%ZIP%" del "%ZIP%"
 powershell -NoProfile -ExecutionPolicy Bypass -Command "Compress-Archive -Path '%STAGE%\*' -DestinationPath '%ZIP%' -CompressionLevel Optimal -Force"

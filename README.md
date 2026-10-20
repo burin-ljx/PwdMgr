@@ -1,4 +1,4 @@
-# PwdMgr
+﻿# PwdMgr
 
 本地离线密码管理器（Windows / C# / WinUI 3）。数据只存在两个文件里：加密的密码库 + 你保管的钥匙文件。软件运行时不联任何网。
 
@@ -174,5 +174,11 @@ dotnet run --project tools/PwdMgr.Cli -- list .\demo\vault.pwdb .\demo\vault.key
 - 快捷键：`Ctrl+N` 新建、`Ctrl+G` 生成器、`Ctrl+F` 搜索、`Ctrl+L` 上锁、`Ctrl+S` 保存。
 - 程序目录下的 `startup.log` 记录启动与异常信息（Debug 构建记录每个启动步骤，Release 只记录异常），可随时删除。
 
+## 许可证
 
+本项目以 **GNU Lesser General Public License v3.0 或更新版本**发布（SPDX：LGPL-3.0-or-later）。
 
+- [LICENSE](LICENSE) —— GNU LGPL v3 全文
+- [LICENSE.GPL-3.0](LICENSE.GPL-3.0) —— LGPL v3 所并入的 GNU GPL v3 全文（分发时必须一并提供）
+
+第三方组件保留各自许可证，本项目未修改它们：.NET 运行时与 Windows App SDK 为 MIT，xUnit 为 Apache-2.0。
