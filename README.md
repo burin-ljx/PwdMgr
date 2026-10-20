@@ -73,6 +73,15 @@ build.cmd
 src\PwdMgr.App\bin\x64\Debug\net8.0-windows10.0.19041.0\win-x64\startup.log
 ```
 
+### 请勿直接从本仓库的 bin 目录运行程序
+
+本开发机上，`D:\dev\pwdmgr-project` 目录带有环境加的特殊权限标记，其中的可执行文件会被当作不可信程序（进程降为低完整性，写不了任何普通目录，连系统记事本复制进去都打不开）。**构建可以在这个目录做，运行请用复制到项目目录之外的副本**：
+
+```cmd
+robocopy "src\PwdMgr.App\bin\x64\Debug\net8.0-windows10.0.19041.0\win-x64" "%LOCALAPPDATA%\PwdMgrApp" /E
+"%LOCALAPPDATA%\PwdMgrApp\PwdMgr.App.exe"
+```
+
 只构建不依赖界面的部分（Core / CLI / 测试）时，仍然可以用 dotnet CLI：
 
 ```powershell
