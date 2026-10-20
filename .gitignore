@@ -15,3 +15,7 @@ TestResults/
 *.pwdb.tmp
 *.pwdb.lock
 *.key
+
+# 临时排查用的命令输出（本地文件，不入库）
+cmdoutput.txt
+agent-creation-commands.txt
