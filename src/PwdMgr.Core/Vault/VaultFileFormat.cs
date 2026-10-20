@@ -95,7 +95,7 @@ internal static class VaultFileFormat
             throw new VaultException(VaultErrorCode.NotAVaultFile);
         }
 
-        var version = BinaryPrimitives.ReadUInt16LittleEndian(file[VersionSize..]);
+        var version = BinaryPrimitives.ReadUInt16LittleEndian(file[MagicSize..]);
         if (version != CurrentFormatVersion)
         {
             throw new VaultException(VaultErrorCode.UnsupportedVersion);

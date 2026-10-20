@@ -171,6 +171,13 @@ public sealed class VaultSessionTests
     public async Task Open_NotAVaultFile_ReportsNotAVaultFile()
     {
         using var temp = new TestVault();
+
+        await using (var session = await VaultSession.CreateAsync(temp.VaultPath, temp.KeyPath))
+        {
+            await session.SaveAsync();
+        }
+
+        // 保留钥匙文件，只把库文件换成垃圾内容。
         await File.WriteAllTextAsync(temp.VaultPath, new string('x', 200));
 
         var ex = await Assert.ThrowsAsync<VaultException>(() => VaultSession.OpenAsync(temp.VaultPath, temp.KeyPath));
