@@ -32,9 +32,9 @@ public sealed partial class UnlockVaultPage : Page
         }
     }
 
-    private async void OnPickVaultClick(object sender, RoutedEventArgs e)
+    private void OnPickVaultClick(object sender, RoutedEventArgs e)
     {
-        var path = await FilePickerService.PickVaultToOpenAsync(App.ShellWindow);
+        var path = FilePickerService.PickVaultToOpen(App.ShellWindow);
         if (path is not null)
         {
             ViewModel.VaultPath = path;
@@ -42,9 +42,9 @@ public sealed partial class UnlockVaultPage : Page
         }
     }
 
-    private async void OnPickKeyClick(object sender, RoutedEventArgs e)
+    private void OnPickKeyClick(object sender, RoutedEventArgs e)
     {
-        var path = await FilePickerService.PickKeyToOpenAsync(App.ShellWindow);
+        var path = FilePickerService.PickKeyToOpen(App.ShellWindow);
         if (path is not null)
         {
             ViewModel.KeyPath = path;

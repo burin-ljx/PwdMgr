@@ -12,6 +12,7 @@ internal static class StartupDiagnostics
     {
         StartupLog.Write(
             $"进程：用户={Environment.UserName} 64位={Environment.Is64BitProcess} 打包身份={GetPackageIdentity()}");
+        StartupLog.Write($"令牌：{TokenInfo.Describe()}");
 
         var temp = Path.GetTempPath();
         StartupLog.Write($"临时目录可写={CanWrite(temp)}（{temp}）");

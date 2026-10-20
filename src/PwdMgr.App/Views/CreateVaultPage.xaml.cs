@@ -15,9 +15,9 @@ public sealed partial class CreateVaultPage : Page
 
     public CreateVaultViewModel ViewModel { get; } = new();
 
-    private async void OnPickVaultClick(object sender, RoutedEventArgs e)
+    private void OnPickVaultClick(object sender, RoutedEventArgs e)
     {
-        var path = await FilePickerService.PickVaultToCreateAsync(App.ShellWindow, "我的密码库");
+        var path = FilePickerService.PickVaultToCreate(App.ShellWindow, "我的密码库");
         if (path is null)
         {
             return;
@@ -31,9 +31,9 @@ public sealed partial class CreateVaultPage : Page
         }
     }
 
-    private async void OnPickKeyClick(object sender, RoutedEventArgs e)
+    private void OnPickKeyClick(object sender, RoutedEventArgs e)
     {
-        var path = await FilePickerService.PickKeyToCreateAsync(App.ShellWindow, "我的钥匙");
+        var path = FilePickerService.PickKeyToCreate(App.ShellWindow, "我的钥匙");
         if (path is not null)
         {
             ViewModel.KeyPath = path;
