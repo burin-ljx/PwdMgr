@@ -9,6 +9,8 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <InvariantGlobalization>true</InvariantGlobalization>
     <Deterministic>true</Deterministic>
+    <!-- 离线构建：不做需要联网的包漏洞审计。 -->
+    <NuGetAudit>false</NuGetAudit>
     <!-- IDE0005（删除多余 using）需要生成 XML 文档文件；公共 API 的缺注释提示一律关闭。 -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>

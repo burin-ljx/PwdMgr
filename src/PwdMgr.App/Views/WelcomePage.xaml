@@ -1,0 +1,59 @@
+<Page
+    x:Class="PwdMgr.App.Views.WelcomePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="Transparent">
+
+    <Grid>
+        <StackPanel
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            MaxWidth="440"
+            Spacing="24">
+
+            <Border
+                Width="60"
+                Height="60"
+                CornerRadius="16"
+                HorizontalAlignment="Left"
+                Background="{ThemeResource AccentFillColorDefaultBrush}">
+                <FontIcon
+                    Glyph="&#xE72E;"
+                    FontSize="26"
+                    Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" />
+            </Border>
+
+            <StackPanel Spacing="10">
+                <TextBlock Text="PwdMgr" FontSize="34" FontWeight="SemiBold" />
+                <TextBlock
+                    Style="{StaticResource PageSubtitleStyle}"
+                    Text="本地离线密码管理器。密码库是一个加密文件，钥匙文件由你自己保管；软件运行时不联网，也不会上传任何数据。" />
+            </StackPanel>
+
+            <StackPanel Spacing="10">
+                <Button
+                    Content="创建新密码库"
+                    Style="{StaticResource AccentButtonStyle}"
+                    HorizontalAlignment="Stretch"
+                    MinHeight="44"
+                    Click="OnCreateClick" />
+                <Button
+                    Content="打开已有密码库"
+                    HorizontalAlignment="Stretch"
+                    MinHeight="44"
+                    Click="OnOpenClick" />
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <FontIcon
+                    Glyph="&#xE785;"
+                    FontSize="11"
+                    VerticalAlignment="Center"
+                    Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                <TextBlock
+                    Style="{StaticResource HintTextStyle}"
+                    Text="钥匙文件丢失后，密码库无法打开，也没有找回途径。" />
+            </StackPanel>
+        </StackPanel>
+    </Grid>
+</Page>

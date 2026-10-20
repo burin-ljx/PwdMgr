@@ -1,0 +1,83 @@
+<Page
+    x:Class="PwdMgr.App.Views.UnlockVaultPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="Transparent">
+
+    <ScrollViewer Padding="32,28,32,24" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Width="760" HorizontalAlignment="Center" Spacing="18">
+
+            <StackPanel Spacing="6">
+                <TextBlock Text="打开密码库" Style="{StaticResource PageTitleStyle}" />
+                <TextBlock
+                    Style="{StaticResource PageSubtitleStyle}"
+                    Text="同时指定密码库文件与它对应的钥匙文件。两者必须来自同一次创建。" />
+            </StackPanel>
+
+            <InfoBar
+                IsOpen="{x:Bind ViewModel.HasError, Mode=OneWay}"
+                Message="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
+                Severity="Error"
+                IsClosable="True" />
+
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="22">
+
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="密码库文件" Style="{StaticResource FieldLabelStyle}" />
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <Border
+                                Background="{ThemeResource ControlFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="12,9">
+                                <TextBlock
+                                    Text="{x:Bind ViewModel.VaultPathDisplay, Mode=OneWay}"
+                                    TextTrimming="CharacterEllipsis"
+                                    VerticalAlignment="Center" />
+                            </Border>
+                            <Button Grid.Column="1" Content="选择…" Click="OnPickVaultClick" MinWidth="88" />
+                        </Grid>
+                    </StackPanel>
+
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="钥匙文件" Style="{StaticResource FieldLabelStyle}" />
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <Border
+                                Background="{ThemeResource ControlFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="12,9">
+                                <TextBlock
+                                    Text="{x:Bind ViewModel.KeyPathDisplay, Mode=OneWay}"
+                                    TextTrimming="CharacterEllipsis"
+                                    VerticalAlignment="Center" />
+                            </Border>
+                            <Button Grid.Column="1" Content="选择…" Click="OnPickKeyClick" MinWidth="88" />
+                        </Grid>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Grid ColumnDefinitions="*,Auto">
+                <ProgressRing
+                    Width="18"
+                    Height="18"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    IsActive="{x:Bind ViewModel.IsBusy, Mode=OneWay}" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12">
+                    <Button Content="返回" Click="OnBackClick" MinWidth="88" />
+                    <Button
+                        Content="打开"
+                        Style="{StaticResource AccentButtonStyle}"
+                        MinWidth="104"
+                        IsEnabled="{x:Bind ViewModel.CanOpen, Mode=OneWay}"
+                        Click="OnOpenClick" />
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

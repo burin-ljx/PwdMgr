@@ -1,0 +1,50 @@
+<Application
+    x:Class="PwdMgr.App.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- 页面标题 -->
+            <Style x:Key="PageTitleStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="26" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Foreground" Value="{ThemeResource TextFillColorPrimaryBrush}" />
+            </Style>
+
+            <!-- 页面副标题 / 说明文字 -->
+            <Style x:Key="PageSubtitleStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+                <Setter Property="TextWrapping" Value="Wrap" />
+                <Setter Property="LineHeight" Value="20" />
+            </Style>
+
+            <!-- 表单字段名 -->
+            <Style x:Key="FieldLabelStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+                <Setter Property="Margin" Value="0,0,0,4" />
+            </Style>
+
+            <!-- 内容卡片 -->
+            <Style x:Key="CardStyle" TargetType="Border">
+                <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+                <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="Padding" Value="24" />
+            </Style>
+
+            <!-- 次要说明的小字 -->
+            <Style x:Key="HintTextStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="Foreground" Value="{ThemeResource TextFillColorTertiaryBrush}" />
+                <Setter Property="TextWrapping" Value="Wrap" />
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

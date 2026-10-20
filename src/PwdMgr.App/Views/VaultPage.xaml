@@ -1,0 +1,172 @@
+<Page
+    x:Class="PwdMgr.App.Views.VaultPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:models="using:PwdMgr.Core.Models"
+    Background="Transparent">
+
+    <Grid Padding="28,20,28,18" RowSpacing="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- 标题区 -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+            <StackPanel Spacing="4">
+                <TextBlock x:Name="VaultNameText" FontSize="22" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                <TextBlock x:Name="VaultMetaText" Style="{StaticResource HintTextStyle}" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+            <Button x:Name="LockButton" Grid.Column="1" Click="OnLockClick" MinWidth="88" ToolTipService.ToolTip="锁定后需要重新选择钥匙文件">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE72E;" FontSize="13" />
+                    <TextBlock Text="上锁" />
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <!-- 工具栏 -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+            <TextBox
+                x:Name="SearchBox"
+                PlaceholderText="搜索标题、用户名、网址、备注"
+                Height="34"
+                Width="380"
+                HorizontalAlignment="Left"
+                TextChanged="OnSearchChanged" />
+            <Button x:Name="NewItemButton" Grid.Column="1" Content="新建条目" IsEnabled="False" ToolTipService.ToolTip="下一阶段开放" />
+            <Button x:Name="GeneratorButton" Grid.Column="2" Content="生成器" IsEnabled="False" ToolTipService.ToolTip="下一阶段开放" />
+        </Grid>
+
+        <!-- 列表 + 详情 -->
+        <Grid Grid.Row="2" ColumnDefinitions="320,*" ColumnSpacing="16">
+
+            <Border Style="{StaticResource CardStyle}" Padding="8">
+                <Grid>
+                    <ListView
+                        x:Name="ItemList"
+                        SelectionMode="Single"
+                        SelectionChanged="OnItemSelectionChanged">
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="models:PasswordItem">
+                                <StackPanel Padding="4,8" Spacing="2">
+                                    <TextBlock
+                                        Text="{x:Bind Title}"
+                                        FontWeight="SemiBold"
+                                        TextTrimming="CharacterEllipsis" />
+                                    <TextBlock
+                                        Text="{x:Bind Username}"
+                                        FontSize="12"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                        TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+
+                    <StackPanel
+                        x:Name="EmptyListPanel"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Center"
+                        Spacing="8"
+                        Visibility="Collapsed">
+                        <FontIcon
+                            Glyph="&#xE8A5;"
+                            FontSize="26"
+                            Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                        <TextBlock
+                            Text="还没有条目"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="1" Style="{StaticResource CardStyle}">
+                <Grid>
+                    <ScrollViewer x:Name="DetailPanel" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Spacing="18">
+                            <StackPanel Spacing="4">
+                                <TextBlock
+                                    x:Name="DetailTitle"
+                                    FontSize="22"
+                                    FontWeight="SemiBold"
+                                    TextWrapping="Wrap" />
+                                <TextBlock x:Name="DetailCreated" Style="{StaticResource HintTextStyle}" />
+                            </StackPanel>
+
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="用户名" Style="{StaticResource FieldLabelStyle}" />
+                                <TextBlock
+                                    x:Name="DetailUsername"
+                                    FontSize="14"
+                                    TextWrapping="Wrap"
+                                    IsTextSelectionEnabled="True" />
+                            </StackPanel>
+
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="密码" Style="{StaticResource FieldLabelStyle}" />
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <TextBlock
+                                        x:Name="DetailPassword"
+                                        FontFamily="Consolas"
+                                        FontSize="16"
+                                        VerticalAlignment="Center" />
+                                    <ToggleButton
+                                        x:Name="EyeButton"
+                                        Width="36"
+                                        Height="28"
+                                        Padding="0"
+                                        Click="OnTogglePasswordClick"
+                                        ToolTipService.ToolTip="显示 / 隐藏密码">
+                                        <FontIcon Glyph="&#xE7B3;" FontSize="14" />
+                                    </ToggleButton>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="网址" Style="{StaticResource FieldLabelStyle}" />
+                                <TextBlock
+                                    x:Name="DetailUrl"
+                                    FontSize="14"
+                                    TextWrapping="Wrap"
+                                    IsTextSelectionEnabled="True" />
+                            </StackPanel>
+
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="标签" Style="{StaticResource FieldLabelStyle}" />
+                                <TextBlock x:Name="DetailTags" FontSize="14" TextWrapping="Wrap" />
+                            </StackPanel>
+
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="备注" Style="{StaticResource FieldLabelStyle}" />
+                                <TextBlock
+                                    x:Name="DetailNotes"
+                                    FontSize="14"
+                                    TextWrapping="Wrap"
+                                    IsTextSelectionEnabled="True" />
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <StackPanel
+                        x:Name="NoSelectionPanel"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Center"
+                        Spacing="10">
+                        <FontIcon
+                            Glyph="&#xE8A5;"
+                            FontSize="28"
+                            Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                        <TextBlock
+                            Text="从左侧选择一个条目"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <TextBlock x:Name="StatusText" Grid.Row="3" Style="{StaticResource HintTextStyle}" />
+    </Grid>
+</Page>
