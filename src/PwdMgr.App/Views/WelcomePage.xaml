@@ -4,7 +4,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Background="Transparent">
 
-    <Grid x:Name="DropSurface" AllowDrop="True">
+    <!-- 面板必须有不透明/透明的 Background 才参与命中测试，否则只有子控件（按钮）能接收拖放。 -->
+    <Grid x:Name="DropSurface" AllowDrop="True" Background="Transparent">
         <InfoBar
             x:Name="DropErrorBar"
             Severity="Error"
