@@ -15,7 +15,7 @@
                 Width="60"
                 Height="60"
                 CornerRadius="16"
-                HorizontalAlignment="Left"
+                HorizontalAlignment="Center"
                 Background="{ThemeResource AccentFillColorDefaultBrush}">
                 <FontIcon
                     Glyph="&#xE72E;"
@@ -24,7 +24,11 @@
             </Border>
 
             <StackPanel Spacing="10">
-                <TextBlock Text="PwdMgr" FontSize="34" FontWeight="SemiBold" />
+                <TextBlock
+                    Text="PwdMgr"
+                    FontSize="34"
+                    FontWeight="SemiBold"
+                    HorizontalAlignment="Center" />
                 <TextBlock
                     Style="{StaticResource PageSubtitleStyle}"
                     Text="本地离线密码管理器。密码库是一个加密文件，钥匙文件由你自己保管；软件运行时不联网，也不会上传任何数据。" />

@@ -17,7 +17,6 @@ public sealed class UnlockVaultViewModel : ObservableObject
         {
             if (SetProperty(ref _vaultPath, value))
             {
-                OnPropertyChanged(nameof(VaultPathDisplay));
                 OnPropertyChanged(nameof(CanOpen));
             }
         }
@@ -30,15 +29,10 @@ public sealed class UnlockVaultViewModel : ObservableObject
         {
             if (SetProperty(ref _keyPath, value))
             {
-                OnPropertyChanged(nameof(KeyPathDisplay));
                 OnPropertyChanged(nameof(CanOpen));
             }
         }
     }
-
-    public string VaultPathDisplay => string.IsNullOrWhiteSpace(VaultPath) ? "尚未选择" : VaultPath;
-
-    public string KeyPathDisplay => string.IsNullOrWhiteSpace(KeyPath) ? "尚未选择" : KeyPath;
 
     public bool IsBusy
     {

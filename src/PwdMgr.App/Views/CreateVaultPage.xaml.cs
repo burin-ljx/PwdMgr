@@ -15,6 +15,36 @@ public sealed partial class CreateVaultPage : Page
 
     public CreateVaultViewModel ViewModel { get; } = new();
 
+    /// <summary>最近一次自动推导出来的钥匙路径；用户自己改过之后就不再覆盖。</summary>
+    private string _autoKeyPath = string.Empty;
+
+    private void OnVaultPathChanged(object sender, TextChangedEventArgs e)
+    {
+        var vaultPath = (sender as TextBox)?.Text.Trim() ?? string.Empty;
+        var suggestion = FilePickerService.SuggestKeyPath(vaultPath);
+        if (suggestion.Length == 0)
+        {
+            return;
+        }
+
+        var keyPath = ViewModel.KeyPath.Trim();
+        if (keyPath.Length == 0 || string.Equals(keyPath, _autoKeyPath, StringComparison.OrdinalIgnoreCase))
+        {
+            ViewModel.KeyPath = suggestion;
+            _autoKeyPath = suggestion;
+        }
+    }
+
+    private void OnKeyPathChanged(object sender, TextChangedEventArgs e)
+    {
+        // 用户自己改了钥匙路径，就不再自动覆盖。
+        var text = (sender as TextBox)?.Text.Trim() ?? string.Empty;
+        if (!string.Equals(text, _autoKeyPath, StringComparison.OrdinalIgnoreCase))
+        {
+            _autoKeyPath = string.Empty;
+        }
+    }
+
     private void OnPickVaultClick(object sender, RoutedEventArgs e)
     {
         var path = FilePickerService.PickVaultToCreate(App.ShellWindow, "我的密码库");
@@ -28,6 +58,7 @@ public sealed partial class CreateVaultPage : Page
         if (string.IsNullOrWhiteSpace(ViewModel.KeyPath))
         {
             ViewModel.KeyPath = FilePickerService.SuggestKeyPath(path);
+            _autoKeyPath = ViewModel.KeyPath;
         }
     }
 
@@ -42,6 +73,9 @@ public sealed partial class CreateVaultPage : Page
 
     private void OnCancelClick(object sender, RoutedEventArgs e) => App.Shell.NavigateToWelcome();
 
+    /// <summary>去掉首尾空白与粘贴时可能带上的引号。</summary>
+    private static string CleanPath(string path) => path.Trim().Trim('"').Trim();
+
     private async void OnCreateClick(object sender, RoutedEventArgs e)
     {
         ViewModel.ErrorMessage = null;
@@ -50,7 +84,10 @@ public sealed partial class CreateVaultPage : Page
         VaultSession? session = null;
         try
         {
-            session = await VaultSession.CreateAsync(ViewModel.VaultPath, ViewModel.KeyPath);
+            var vaultPath = CleanPath(ViewModel.VaultPath);
+            var keyPath = CleanPath(ViewModel.KeyPath);
+
+            session = await VaultSession.CreateAsync(vaultPath, keyPath);
             await ShowCreatedDialogAsync(session);
 
             await App.Shell.EnterVaultAsync(session);

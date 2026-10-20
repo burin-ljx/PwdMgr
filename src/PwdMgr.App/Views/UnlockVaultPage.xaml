@@ -11,7 +11,7 @@
                 <TextBlock Text="打开密码库" Style="{StaticResource PageTitleStyle}" />
                 <TextBlock
                     Style="{StaticResource PageSubtitleStyle}"
-                    Text="同时指定密码库文件与它对应的钥匙文件。两者必须来自同一次创建。" />
+                    Text="同时指定密码库文件与它对应的钥匙文件，可以直接输入或粘贴路径。两者必须来自同一次创建。" />
             </StackPanel>
 
             <InfoBar
@@ -26,17 +26,11 @@
                     <StackPanel Spacing="8">
                         <TextBlock Text="密码库文件" Style="{StaticResource FieldLabelStyle}" />
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                            <Border
-                                Background="{ThemeResource ControlFillColorDefaultBrush}"
-                                BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
-                                BorderThickness="1"
-                                CornerRadius="4"
-                                Padding="12,9">
-                                <TextBlock
-                                    Text="{x:Bind ViewModel.VaultPathDisplay, Mode=OneWay}"
-                                    TextTrimming="CharacterEllipsis"
-                                    VerticalAlignment="Center" />
-                            </Border>
+                            <TextBox
+                                x:Name="VaultPathBox"
+                                AutomationProperties.AutomationId="VaultPathBox"
+                                Text="{x:Bind ViewModel.VaultPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                PlaceholderText="输入或粘贴路径，例如 D:\我的密码库.pwdb" />
                             <Button Grid.Column="1" Content="选择…" Click="OnPickVaultClick" MinWidth="88" />
                         </Grid>
                     </StackPanel>
@@ -44,17 +38,11 @@
                     <StackPanel Spacing="8">
                         <TextBlock Text="钥匙文件" Style="{StaticResource FieldLabelStyle}" />
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                            <Border
-                                Background="{ThemeResource ControlFillColorDefaultBrush}"
-                                BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
-                                BorderThickness="1"
-                                CornerRadius="4"
-                                Padding="12,9">
-                                <TextBlock
-                                    Text="{x:Bind ViewModel.KeyPathDisplay, Mode=OneWay}"
-                                    TextTrimming="CharacterEllipsis"
-                                    VerticalAlignment="Center" />
-                            </Border>
+                            <TextBox
+                                x:Name="KeyPathBox"
+                                AutomationProperties.AutomationId="KeyPathBox"
+                                Text="{x:Bind ViewModel.KeyPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                PlaceholderText="输入或粘贴路径，例如 D:\我的密码库.key" />
                             <Button Grid.Column="1" Content="选择…" Click="OnPickKeyClick" MinWidth="88" />
                         </Grid>
                     </StackPanel>

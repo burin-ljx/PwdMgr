@@ -54,6 +54,9 @@ public sealed partial class UnlockVaultPage : Page
 
     private void OnBackClick(object sender, RoutedEventArgs e) => App.Shell.NavigateToWelcome();
 
+    /// <summary>去掉首尾空白与粘贴时可能带上的引号。</summary>
+    private static string CleanPath(string path) => path.Trim().Trim('"').Trim();
+
     private async void OnOpenClick(object sender, RoutedEventArgs e)
     {
         ViewModel.ErrorMessage = null;
@@ -62,7 +65,10 @@ public sealed partial class UnlockVaultPage : Page
         VaultSession? session = null;
         try
         {
-            session = await VaultSession.OpenAsync(ViewModel.VaultPath, ViewModel.KeyPath);
+            var vaultPath = CleanPath(ViewModel.VaultPath);
+            var keyPath = CleanPath(ViewModel.KeyPath);
+
+            session = await VaultSession.OpenAsync(vaultPath, keyPath);
             await App.Shell.EnterVaultAsync(session);
             session = null;
         }
