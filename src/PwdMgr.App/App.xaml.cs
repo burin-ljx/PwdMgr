@@ -10,6 +10,7 @@ public partial class App : Application
     public App()
     {
         StartupLog.Write("App 构造");
+        StartupDiagnostics.Log();
         UnhandledException += OnUnhandledException;
         AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
         TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
