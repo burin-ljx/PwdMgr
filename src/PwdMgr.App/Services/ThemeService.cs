@@ -1,4 +1,5 @@
-﻿using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 
 namespace PwdMgr.App.Services;
@@ -40,6 +41,16 @@ public static class ThemeService
         }
     }
 
+    /// <summary>让内容对话框跟随当前主题（对话框不会自动继承窗口根元素的 RequestedTheme）。</summary>
+    public static void ApplyToDialog(ContentDialog dialog) => dialog.RequestedTheme = ToElementTheme(Current);
+
+    private static ElementTheme ToElementTheme(ThemeMode mode) => mode switch
+    {
+        ThemeMode.Light => ElementTheme.Light,
+        ThemeMode.Dark => ElementTheme.Dark,
+        _ => ElementTheme.Default,
+    };
+
     private static void ApplyTo(Window window, ThemeMode mode)
     {
         if (window.Content is not FrameworkElement root)
@@ -47,12 +58,7 @@ public static class ThemeService
             return;
         }
 
-        root.RequestedTheme = mode switch
-        {
-            ThemeMode.Light => ElementTheme.Light,
-            ThemeMode.Dark => ElementTheme.Dark,
-            _ => ElementTheme.Default,
-        };
+        root.RequestedTheme = ToElementTheme(mode);
 
         // 强制主题时 Mica 仍是系统的配色，会和内容对不上，改用主题背景色。
         if (window is MainWindow mainWindow)

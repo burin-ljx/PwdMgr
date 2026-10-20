@@ -305,6 +305,8 @@ public sealed partial class VaultPage : Page
             dialog.PrimaryButtonStyle = (Style)Application.Current.Resources["DestructiveButtonStyle"];
         }
 
+        ThemeService.ApplyToDialog(dialog);
+
         return await dialog.ShowAsync() == ContentDialogResult.Primary;
     }
 

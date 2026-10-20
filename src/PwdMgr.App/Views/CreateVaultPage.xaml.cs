@@ -163,6 +163,8 @@ public sealed partial class CreateVaultPage : Page
             DefaultButton = ContentDialogButton.Close,
         };
 
+        ThemeService.ApplyToDialog(dialog);
+
         await dialog.ShowAsync();
     }
 }

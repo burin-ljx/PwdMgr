@@ -1,4 +1,4 @@
-using Microsoft.UI;
+﻿using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -55,7 +55,7 @@ public sealed partial class MainWindow : Window
 
     /// <summary>
     /// 跟随系统时用 Mica；强制浅色/深色时 Mica 仍是系统配色，会与内容对不上，
-    /// 改用对应的纯色背景。
+    /// 改用对应的纯色背景。标题栏的最小化/最大化/关闭按钮颜色也在这里同步。
     /// </summary>
     public void ApplyBackdropForTheme(ThemeMode mode)
     {
@@ -63,11 +63,45 @@ public sealed partial class MainWindow : Window
         {
             RootGrid.Background = null;
             TryEnableMica();
+            ApplyTitleBarTheme(TitleBarTheme.UseDefaultAppMode);
             return;
         }
 
         SystemBackdrop = null;
         RootGrid.Background = ThemeService.ThemeBackground(mode);
+        ApplyTitleBarTheme(mode == ThemeMode.Dark ? TitleBarTheme.Dark : TitleBarTheme.Light);
+    }
+
+    /// <summary>让标题栏（含系统绘制的窗口按钮）跟随应用主题。</summary>
+    private void ApplyTitleBarTheme(TitleBarTheme theme)
+    {
+        var titleBar = AppWindow.TitleBar;
+        titleBar.PreferredTheme = theme;
+
+        // 旧版本没有 PreferredTheme 生效时至少把按钮颜色设对。
+        titleBar.ButtonBackgroundColor = Colors.Transparent;
+        titleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
+
+        if (theme == TitleBarTheme.UseDefaultAppMode)
+        {
+            titleBar.ButtonForegroundColor = null;
+            titleBar.ButtonHoverForegroundColor = null;
+            titleBar.ButtonPressedForegroundColor = null;
+            titleBar.ButtonHoverBackgroundColor = null;
+            titleBar.ButtonPressedBackgroundColor = null;
+            return;
+        }
+
+        var foreground = theme == TitleBarTheme.Dark ? Colors.White : Colors.Black;
+        titleBar.ButtonForegroundColor = foreground;
+        titleBar.ButtonHoverForegroundColor = foreground;
+        titleBar.ButtonPressedForegroundColor = foreground;
+        titleBar.ButtonHoverBackgroundColor = theme == TitleBarTheme.Dark
+            ? Windows.UI.Color.FromArgb(0x1F, 0xFF, 0xFF, 0xFF)
+            : Windows.UI.Color.FromArgb(0x1F, 0x00, 0x00, 0x00);
+        titleBar.ButtonPressedBackgroundColor = theme == TitleBarTheme.Dark
+            ? Windows.UI.Color.FromArgb(0x3F, 0xFF, 0xFF, 0xFF)
+            : Windows.UI.Color.FromArgb(0x3F, 0x00, 0x00, 0x00);
     }
 
     private void TryEnableMica()
@@ -124,4 +158,5 @@ public sealed partial class MainWindow : Window
         }
     }
 }
+
 

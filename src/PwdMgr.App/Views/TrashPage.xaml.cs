@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
+using PwdMgr.App.Services;
 using PwdMgr.App.ViewModels;
 using PwdMgr.Core.Vault;
 
@@ -130,6 +131,8 @@ public sealed partial class TrashPage : Page
             CloseButtonText = "取消",
             DefaultButton = ContentDialogButton.None,
         };
+
+        ThemeService.ApplyToDialog(dialog);
 
         return await dialog.ShowAsync() == ContentDialogResult.Primary;
     }
