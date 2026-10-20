@@ -41,6 +41,9 @@ public sealed partial class GeneratorWindow : Window
 
     private bool _isLoading;
 
+    /// <summary>规则改过但还没点“生成”：界面上会提示一下。</summary>
+    private bool _settingsDirty;
+
     private PointInt32 CenteredPosition(int width, int height)
     {
         var display = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary);
@@ -60,6 +63,16 @@ public sealed partial class GeneratorWindow : Window
         ExcludeAmbiguous = AmbiguousCheck.IsChecked == true,
     };
 
+    /// <summary>规则改动只更新设置与提示，不重新生成；点“生成”才按新规则生成。</summary>
+    private void ApplySettings()
+    {
+        var options = ReadOptions();
+        App.Shell.GeneratorOptions = options;
+        _settingsDirty = true;
+        UpdateStrengthHint(options);
+        StatusBar.IsOpen = false;
+    }
+
     private void Generate()
     {
         var options = ReadOptions();
@@ -68,9 +81,8 @@ public sealed partial class GeneratorWindow : Window
         try
         {
             PasswordBox.Text = PasswordGenerator.Generate(options);
-            var entropy = PasswordGenerator.EntropyBits(options);
-            StrengthText.Text =
-                $"强度：{PasswordGenerator.DescribeStrength(entropy)}（约 {entropy:0} 比特，候选字符 {PasswordGenerator.PoolSize(options)} 个）";
+            _settingsDirty = false;
+            UpdateStrengthHint(options);
             StatusBar.IsOpen = false;
         }
         catch (Exception ex) when (ex is ArgumentException or ArgumentOutOfRangeException)
@@ -81,6 +93,17 @@ public sealed partial class GeneratorWindow : Window
         }
     }
 
+    private void UpdateStrengthHint(PasswordOptions options)
+    {
+        var entropy = PasswordGenerator.EntropyBits(options);
+        var text =
+            $"强度：{PasswordGenerator.DescribeStrength(entropy)}（约 {entropy:0} 比特，候选字符 {PasswordGenerator.PoolSize(options)} 个）";
+
+        StrengthText.Text = _settingsDirty
+            ? text + " · 设置已修改，点“生成”应用"
+            : text;
+    }
+
     private void OnLengthChanged(object sender, RangeBaseValueChangedEventArgs e)
     {
         if (_isLoading)
@@ -89,14 +112,14 @@ public sealed partial class GeneratorWindow : Window
         }
 
         LengthText.Text = ((int)e.NewValue).ToString(System.Globalization.CultureInfo.CurrentCulture);
-        Generate();
+        ApplySettings();
     }
 
     private void OnOptionChanged(object sender, RoutedEventArgs e)
     {
         if (!_isLoading)
         {
-            Generate();
+            ApplySettings();
         }
     }
 

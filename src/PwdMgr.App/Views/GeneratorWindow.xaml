@@ -53,7 +53,7 @@
             <Button
                 x:Name="RegenerateButton"
                 AutomationProperties.AutomationId="RegenerateButton"
-                Content="重新生成"
+                Content="生成"
                 Click="OnRegenerateClick" />
             <Button
                 x:Name="CopyButton"
