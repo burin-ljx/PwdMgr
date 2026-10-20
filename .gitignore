@@ -25,3 +25,8 @@ agent-creation-commands.txt
 
 # 打包产物
 dist/
+
+# 误拷贝进来的二进制
+*.exe
+*.dll
+
