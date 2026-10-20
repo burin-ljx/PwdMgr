@@ -95,6 +95,20 @@ public sealed class VaultSessionTests
     }
 
     [Fact]
+    public async Task Create_WithReadOnlyPlaceholderFile_Succeeds()
+    {
+        using var temp = new TestVault();
+        await File.WriteAllBytesAsync(temp.VaultPath, []);
+        File.SetAttributes(temp.VaultPath, FileAttributes.ReadOnly);
+
+        await using var session = await VaultSession.CreateAsync(temp.VaultPath, temp.KeyPath);
+        await session.SaveAsync();
+
+        Assert.True(new FileInfo(temp.VaultPath).Length > 0);
+        Assert.Equal(0, (int)(File.GetAttributes(temp.VaultPath) & FileAttributes.ReadOnly));
+    }
+
+    [Fact]
     public async Task Create_WithExistingNonEmptyFile_ReportsTargetExists()
     {
         using var temp = new TestVault();

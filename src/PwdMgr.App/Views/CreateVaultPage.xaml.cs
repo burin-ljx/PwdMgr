@@ -58,11 +58,18 @@ public sealed partial class CreateVaultPage : Page
         }
         catch (VaultException ex)
         {
+            StartupLog.Write("创建密码库失败", ex);
             ViewModel.ErrorMessage = ex.Message;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
         {
-            ViewModel.ErrorMessage = $"创建失败：{ex.Message}";
+            StartupLog.Write("创建密码库失败", ex);
+            LogTargetState(ViewModel.VaultPath, "密码库");
+            LogTargetState(ViewModel.KeyPath, "钥匙");
+
+            ViewModel.ErrorMessage = ex is UnauthorizedAccessException
+                ? $"创建失败：无法写入该位置。可能是文件夹权限不足，或 Windows「受控文件夹访问」拦截。请换一个文件夹（例如 D:\\ 下普通目录）或把本程序加入允许列表。\n原始错误：{ex.Message}"
+                : $"创建失败：{ex.Message}";
         }
         finally
         {
@@ -72,6 +79,26 @@ public sealed partial class CreateVaultPage : Page
             }
 
             ViewModel.IsBusy = false;
+        }
+    }
+
+    /// <summary>把目标文件与目录的状态写进日志，便于定位权限类失败。</summary>
+    private static void LogTargetState(string path, string description)
+    {
+        try
+        {
+            var directory = Path.GetDirectoryName(path);
+            var exists = File.Exists(path);
+            var attributes = exists ? File.GetAttributes(path).ToString() : "不存在";
+            var length = exists ? new FileInfo(path).Length : 0;
+
+            StartupLog.Write(
+                $"{description}目标：{path} 存在={exists} 长度={length} 属性={attributes} " +
+                $"目录={directory} 目录存在={Directory.Exists(directory)}");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            StartupLog.Write($"{description}目标状态读取失败：{path} {ex.Message}");
         }
     }
 

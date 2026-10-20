@@ -1,0 +1,17 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PwdMgr.App/PwdMgr.App.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/PwdMgr.Core/PwdMgr.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PwdMgr.Core.Tests/PwdMgr.Core.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/PwdMgr.Cli/PwdMgr.Cli.csproj" />
+  </Folder>
+  <Folder Name="/解决方案项/">
+    <File Path="docs/技术方案-v1.md" />
+  </Folder>
+</Solution>

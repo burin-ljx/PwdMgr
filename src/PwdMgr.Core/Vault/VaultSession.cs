@@ -75,8 +75,10 @@ public sealed class VaultSession : IAsyncDisposable
         EnsureDistinctPaths(vaultFullPath, keyFullPath);
         EnsureDirectory(vaultFullPath);
         EnsureDirectory(keyFullPath);
-        PrepareTargetFile(vaultFullPath, "密码库文件");
-        PrepareTargetFile(keyFullPath, "钥匙文件");
+
+        // 文件保存对话框会预建 0 字节文件：这种占位文件直接覆盖写，不删除重建。
+        var vaultIsPlaceholder = EnsureWritableTarget(vaultFullPath, "密码库文件");
+        var keyIsPlaceholder = EnsureWritableTarget(keyFullPath, "钥匙文件");
 
         var lockStream = AcquireLock(vaultFullPath);
         VaultKeyPair? keyPair = null;
@@ -91,7 +93,7 @@ public sealed class VaultSession : IAsyncDisposable
             var wrappedKey = keyPair.WrapDataKey(dataKey);
             var document = VaultDocument.CreateNew();
 
-            KeyFileStore.Save(keyFullPath, keyPair);
+            KeyFileStore.Save(keyFullPath, keyPair, writeInPlace: keyIsPlaceholder);
             keyFileCreated = true;
 
             var header = new VaultHeader
@@ -103,7 +105,16 @@ public sealed class VaultSession : IAsyncDisposable
             };
 
             var (fileBytes, nonce) = BuildFileBytes(header, document.ToPayload(), dataKey, []);
-            await AtomicFile.WriteAsync(vaultFullPath, fileBytes, cancellationToken).ConfigureAwait(false);
+
+            if (vaultIsPlaceholder)
+            {
+                await AtomicFile.WriteInPlaceAsync(vaultFullPath, fileBytes, cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                await AtomicFile.WriteAsync(vaultFullPath, fileBytes, cancellationToken).ConfigureAwait(false);
+            }
+
             vaultFileCreated = true;
 
             // 新建后立刻读回校验，确保用户拿到的一定是能打开的库。
@@ -120,7 +131,7 @@ public sealed class VaultSession : IAsyncDisposable
                 document.CreatedUtc,
                 document);
         }
-        catch
+        catch (Exception ex)
         {
             if (vaultFileCreated)
             {
@@ -139,6 +150,15 @@ public sealed class VaultSession : IAsyncDisposable
 
             keyPair?.Dispose();
             lockStream.Dispose();
+
+            if (ex is IOException or UnauthorizedAccessException)
+            {
+                throw new VaultException(
+                    VaultErrorCode.SaveFailed,
+                    $"写入密码库失败：{ex.Message}",
+                    ex);
+            }
+
             throw;
         }
     }
@@ -437,20 +457,32 @@ public sealed class VaultSession : IAsyncDisposable
     }
 
     /// <summary>
-    /// 检查写入目标。系统文件保存对话框会预先创建一个 0 字节文件，这种占位文件直接清掉；
-    /// 非空文件一律拒绝，避免误覆盖已有的密码库或别的数据。
+    /// 检查写入目标。返回 true 表示目标是一个 0 字节占位文件（文件保存对话框预建），
+    /// 调用方应直接覆盖写；返回 false 表示目标不存在；非空文件一律拒绝，避免误覆盖已有数据。
     /// </summary>
-    private static void PrepareTargetFile(string path, string description)
+    private static bool EnsureWritableTarget(string path, string description)
     {
         if (!File.Exists(path))
         {
-            return;
+            return false;
         }
 
-        if (new FileInfo(path).Length == 0)
+        long length;
+        try
         {
-            File.Delete(path);
-            return;
+            length = new FileInfo(path).Length;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            throw new VaultException(
+                VaultErrorCode.TargetExists,
+                $"{description}已存在，但无法读取它的状态：{path}",
+                ex);
+        }
+
+        if (length == 0)
+        {
+            return true;
         }
 
         throw new VaultException(

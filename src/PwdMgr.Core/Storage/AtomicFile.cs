@@ -8,6 +8,44 @@ internal static class AtomicFile
 {
     private const int BufferSize = 64 * 1024;
 
+    /// <summary>
+    /// 直接写入已存在的文件（用于文件选择器预建的 0 字节占位文件）。
+    /// 不走“临时文件 + 替换”，因为占位文件可能仍被选择器持有，删除或改名会失败。
+    /// </summary>
+    public static void WriteInPlace(string path, ReadOnlySpan<byte> content)
+    {
+        ClearReadOnly(path);
+
+        using var stream = new FileStream(
+            path,
+            FileMode.Create,
+            FileAccess.Write,
+            FileShare.ReadWrite | FileShare.Delete,
+            BufferSize,
+            FileOptions.WriteThrough);
+
+        stream.Write(content);
+        stream.Flush(flushToDisk: true);
+    }
+
+    /// <summary>异步版本，行为与 <see cref="WriteInPlace"/> 一致。</summary>
+    public static async Task WriteInPlaceAsync(string path, ReadOnlyMemory<byte> content, CancellationToken cancellationToken)
+    {
+        ClearReadOnly(path);
+
+        await using var stream = new FileStream(
+            path,
+            FileMode.Create,
+            FileAccess.Write,
+            FileShare.ReadWrite | FileShare.Delete,
+            BufferSize,
+            FileOptions.Asynchronous | FileOptions.WriteThrough);
+
+        await stream.WriteAsync(content, cancellationToken).ConfigureAwait(false);
+        await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+        stream.Flush(flushToDisk: true);
+    }
+
     /// <summary>同步写入。</summary>
     public static void Write(string path, ReadOnlySpan<byte> content)
     {
@@ -63,6 +101,15 @@ internal static class AtomicFile
         }
     }
 
+    private static void ClearReadOnly(string path)
+    {
+        var attributes = File.GetAttributes(path);
+        if ((attributes & FileAttributes.ReadOnly) != 0)
+        {
+            File.SetAttributes(path, attributes & ~FileAttributes.ReadOnly);
+        }
+    }
+
     /// <summary>用临时文件替换目标文件，并把旧文件改名为 <c>.bak</c>。</summary>
     public static void ReplaceWithBackup(string tempPath, string destinationPath)
     {
@@ -72,6 +119,8 @@ internal static class AtomicFile
             File.Move(tempPath, destinationPath);
             return;
         }
+
+        ClearReadOnly(destinationPath);
 
         try
         {
