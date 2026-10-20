@@ -91,6 +91,8 @@ public sealed partial class VaultPage : Page
 
     private void OnGeneratorClick(object sender, RoutedEventArgs e) => App.Shell.ShowGenerator();
 
+    private void OnThemeClick(object sender, RoutedEventArgs e) => ThemeMenu.Show((FrameworkElement)sender);
+
     private void OnGeneratorAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         args.Handled = true;

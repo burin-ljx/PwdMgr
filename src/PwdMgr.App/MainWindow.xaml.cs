@@ -28,6 +28,10 @@ public sealed partial class MainWindow : Window
         ContentFrame.Navigate(typeof(WelcomePage));
         AppWindow.Closing += OnAppWindowClosing;
         Closed += OnClosed;
+
+        // 应用保存的主题（跟随系统 / 浅色 / 深色）。
+        ThemeService.Register(this);
+
         StartupLog.Write("MainWindow 构造完成");
     }
 
@@ -40,6 +44,34 @@ public sealed partial class MainWindow : Window
         titleBar.ButtonBackgroundColor = Colors.Transparent;
         titleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
 
+        TryEnableMica();
+
+        WindowHelper.CenterAndResize(this, 1120, 760);
+
+        // 页面内容最窄需要约 860 逻辑像素（创建/打开页固定 760 + 内边距），
+        // 低于这个尺寸会被裁切，这里直接限制窗口最小值。
+        WindowHelper.SetMinimumSize(this, 900, 640);
+    }
+
+    /// <summary>
+    /// 跟随系统时用 Mica；强制浅色/深色时 Mica 仍是系统配色，会与内容对不上，
+    /// 改用对应的纯色背景。
+    /// </summary>
+    public void ApplyBackdropForTheme(ThemeMode mode)
+    {
+        if (mode == ThemeMode.System)
+        {
+            RootGrid.Background = null;
+            TryEnableMica();
+            return;
+        }
+
+        SystemBackdrop = null;
+        RootGrid.Background = ThemeService.ThemeBackground(mode);
+    }
+
+    private void TryEnableMica()
+    {
         try
         {
             SystemBackdrop = new MicaBackdrop();
@@ -49,12 +81,6 @@ public sealed partial class MainWindow : Window
             // 旧系统不支持 Mica 时退回不透明背景，避免窗口变透明。
             RootGrid.Background = (Brush)Application.Current.Resources["ApplicationPageBackgroundThemeBrush"];
         }
-
-        WindowHelper.CenterAndResize(this, 1120, 760);
-
-        // 页面内容最窄需要约 860 逻辑像素（创建/打开页固定 760 + 内边距），
-        // 低于这个尺寸会被裁切，这里直接限制窗口最小值。
-        WindowHelper.SetMinimumSize(this, 900, 640);
     }
 
     /// <summary>
@@ -98,3 +124,4 @@ public sealed partial class MainWindow : Window
         }
     }
 }
+

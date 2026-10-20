@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="密码生成器">
 
-    <Grid Padding="24,20,24,20" RowSpacing="14">
+    <Grid Padding="24,20,24,20" RowSpacing="14" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />

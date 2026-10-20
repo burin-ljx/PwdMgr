@@ -36,7 +36,7 @@
         </Grid>
 
         <!-- 工具栏 -->
-        <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8">
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8">
             <TextBox
                 x:Name="SearchBox"
                 AutomationProperties.AutomationId="SearchBox"
@@ -83,6 +83,17 @@
                         <MenuFlyoutItem Text="从备份恢复…" Click="OnRestoreClick" />
                     </MenuFlyout>
                 </Button.Flyout>
+            </Button>
+            <Button
+                x:Name="ThemeButton"
+                Grid.Column="6"
+                Width="34"
+                Height="32"
+                Padding="0"
+                AutomationProperties.AutomationId="ThemeButton"
+                ToolTipService.ToolTip="主题"
+                Click="OnThemeClick">
+                <FontIcon Glyph="&#xE713;" FontSize="14" />
             </Button>
         </Grid>
 

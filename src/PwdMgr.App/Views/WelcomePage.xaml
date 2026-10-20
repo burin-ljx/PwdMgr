@@ -72,5 +72,18 @@
                     Text="钥匙文件丢失后，密码库无法打开，也没有找回途径。" />
             </StackPanel>
         </StackPanel>
+        <Button
+            x:Name="ThemeButton"
+            AutomationProperties.AutomationId="ThemeButton"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Bottom"
+            Margin="0,0,16,16"
+            Width="40"
+            Height="40"
+            Padding="0"
+            ToolTipService.ToolTip="主题"
+            Click="OnThemeClick">
+            <FontIcon Glyph="&#xE713;" FontSize="16" />
+        </Button>
     </Grid>
 </Page>

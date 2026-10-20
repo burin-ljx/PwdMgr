@@ -28,6 +28,8 @@ public partial class App : Application
     {
         StartupLog.Write("OnLaunched 开始");
 
+        ThemeService.Initialize(AppSettings.Current.Theme);
+
         _window = new MainWindow();
         ShellWindow = (MainWindow)_window;
         Shell = new AppShell(ShellWindow);

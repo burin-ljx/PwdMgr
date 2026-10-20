@@ -19,6 +19,8 @@ public sealed partial class WelcomePage : Page
 
     private void OnOpenClick(object sender, RoutedEventArgs e) => App.Shell.NavigateToUnlock();
 
+    private void OnThemeClick(object sender, RoutedEventArgs e) => ThemeMenu.Show((FrameworkElement)sender);
+
     private void OnDragOver(object sender, DragEventArgs e)
     {
         if (FileDropHelper.CanAccept(e))

@@ -37,6 +37,8 @@ public sealed partial class GeneratorWindow : Window
         CustomCharsBox.Text = options.CustomCharacters;
         _isLoading = false;
 
+        ThemeService.Register(this);
+
         Generate();
     }
 
