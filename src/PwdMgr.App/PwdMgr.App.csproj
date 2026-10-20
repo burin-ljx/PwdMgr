@@ -14,11 +14,6 @@
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <SelfContained>true</SelfContained>
     <EnableMsixTooling>false</EnableMsixTooling>
-    <!--
-      应用没有本地化资源，不需要 resources.pri；关掉 PRI 生成可以避免调用 MakePri.exe。
-      在部分受安全策略限制的机器上，MakePri.exe 会以 0x80070005（拒绝访问）失败，导致构建中断。
-    -->
-    <AppxGeneratePriEnabled>false</AppxGeneratePriEnabled>
   </PropertyGroup>
 
   <ItemGroup>

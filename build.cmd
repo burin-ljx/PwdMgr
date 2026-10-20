@@ -5,6 +5,11 @@ rem Build with the MSBuild that ships with Visual Studio.
 rem A .cmd file is used because this machine's PowerShell execution policy (AllSigned)
 rem blocks unsigned .ps1 scripts.
 
+set "ROOT=%~dp0"
+set "TEMP=%ROOT%.artifacts\temp"
+set "TMP=%ROOT%.artifacts\temp"
+if not exist "%TEMP%" mkdir "%TEMP%"
+
 set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
 if not exist "%VSWHERE%" (
     echo [build] vswhere.exe not found. Install Visual Studio first.
@@ -22,7 +27,8 @@ if not defined MSBUILD (
 )
 
 echo [build] MSBuild: %MSBUILD%
-"%MSBUILD%" "%~dp0PwdMgr.sln" -restore -nologo -v:m -p:Configuration=Debug
+echo [build] TEMP: %TEMP%
+"%MSBUILD%" "%ROOT%PwdMgr.sln" -restore -nologo -v:m -p:Configuration=Debug
 if errorlevel 1 (
     echo [build] FAILED.
     exit /b 1
