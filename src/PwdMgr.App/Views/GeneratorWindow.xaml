@@ -1,0 +1,74 @@
+<Window
+    x:Class="PwdMgr.App.Views.GeneratorWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="密码生成器">
+
+    <Grid Padding="24,20,24,20" RowSpacing="14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <TextBox
+            Grid.Row="0"
+            x:Name="PasswordBox"
+            AutomationProperties.AutomationId="GeneratedPassword"
+            IsReadOnly="True"
+            FontFamily="Consolas"
+            FontSize="18"
+            TextWrapping="Wrap"
+            MinHeight="64"
+            TextChanged="OnPasswordTextChanged" />
+
+        <TextBlock Grid.Row="1" x:Name="StrengthText" Style="{StaticResource HintTextStyle}" />
+
+        <StackPanel Grid.Row="2" Spacing="4">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <TextBlock Text="长度" Style="{StaticResource FieldLabelStyle}" VerticalAlignment="Center" />
+                <TextBlock
+                    x:Name="LengthText"
+                    Grid.Column="2"
+                    Style="{StaticResource HintTextStyle}"
+                    VerticalAlignment="Center" />
+            </Grid>
+            <Slider
+                x:Name="LengthSlider"
+                ValueChanged="OnLengthChanged" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="3" Spacing="6">
+            <CheckBox x:Name="UppercaseCheck" Content="大写字母 A-Z" Checked="OnOptionChanged" Unchecked="OnOptionChanged" />
+            <CheckBox x:Name="LowercaseCheck" Content="小写字母 a-z" Checked="OnOptionChanged" Unchecked="OnOptionChanged" />
+            <CheckBox x:Name="DigitsCheck" Content="数字 0-9" Checked="OnOptionChanged" Unchecked="OnOptionChanged" />
+            <CheckBox x:Name="SymbolsCheck" Content="符号 !@#$%^&amp;*" Checked="OnOptionChanged" Unchecked="OnOptionChanged" />
+            <CheckBox x:Name="AmbiguousCheck" Content="排除易混淆字符（I O l 0 1）" Checked="OnOptionChanged" Unchecked="OnOptionChanged" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="8">
+            <Button
+                x:Name="RegenerateButton"
+                AutomationProperties.AutomationId="RegenerateButton"
+                Content="重新生成"
+                Click="OnRegenerateClick" />
+            <Button
+                x:Name="CopyButton"
+                AutomationProperties.AutomationId="GeneratorCopyButton"
+                Content="复制"
+                Style="{StaticResource AccentButtonStyle}"
+                Click="OnCopyClick" />
+        </StackPanel>
+
+        <InfoBar
+            Grid.Row="5"
+            x:Name="StatusBar"
+            Severity="Success"
+            IsOpen="False"
+            IsClosable="True"
+            VerticalAlignment="Bottom" />
+    </Grid>
+</Window>

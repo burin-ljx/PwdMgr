@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Markup;
 using PwdMgr.App.Views;
+using PwdMgr.Core.Security;
 using PwdMgr.Core.Vault;
 
 namespace PwdMgr.App.Services;
@@ -16,12 +17,40 @@ public sealed class AppShell
 
     private readonly MainWindow _window;
     private readonly AutoLockService _autoLock;
+    private GeneratorWindow? _generatorWindow;
 
     public AppShell(MainWindow window)
     {
         _window = window;
         _autoLock = new AutoLockService(window.DispatcherQueue, ReadIdleLimit());
         _autoLock.LockRequested += OnAutoLockRequested;
+        ClipboardService.Initialize(window.DispatcherQueue);
+    }
+
+    /// <summary>密码生成器选项，主界面“骰子”按钮与生成器窗口共用。</summary>
+    public PasswordOptions GeneratorOptions { get; set; } = new();
+
+    /// <summary>打开（或激活）独立的密码生成器窗口。</summary>
+    public void ShowGenerator()
+    {
+        if (_generatorWindow is not null)
+        {
+            _generatorWindow.Activate();
+            return;
+        }
+
+        try
+        {
+            _generatorWindow = new GeneratorWindow();
+        }
+        catch (Exception ex)
+        {
+            StartupLog.Write("生成器窗口创建失败", ex);
+            throw;
+        }
+
+        _generatorWindow.Closed += (_, _) => _generatorWindow = null;
+        _generatorWindow.Activate();
     }
 
     /// <summary>当前解锁的密码库；未解锁时为 <see langword="null"/>。</summary>
@@ -76,6 +105,7 @@ public sealed class AppShell
         }
 
         _autoLock.Stop();
+        ClipboardService.ClearIfOwned();
         Session = null;
         PendingEditsCommitter = null;
         var vaultPath = session.VaultPath;

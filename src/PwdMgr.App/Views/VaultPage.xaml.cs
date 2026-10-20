@@ -1,8 +1,12 @@
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Navigation;
+using PwdMgr.App.Services;
 using PwdMgr.App.ViewModels;
 using PwdMgr.Core.Models;
+using PwdMgr.Core.Security;
 using PwdMgr.Core.Vault;
 
 namespace PwdMgr.App.Views;
@@ -18,6 +22,7 @@ public sealed partial class VaultPage : Page
     private bool _isLoading;
     private bool _suppressSelectionChange;
     private bool _lastSaveCreatedItem;
+    private DispatcherQueueTimer? _transientTimer;
 
     public VaultPage()
     {
@@ -55,7 +60,7 @@ public sealed partial class VaultPage : Page
         App.Shell.PendingEditsCommitter = null;
     }
 
-    private async void OnNewItemClick(object sender, RoutedEventArgs e)
+    private async Task NewItemAsync()
     {
         if (_session is null)
         {
@@ -68,6 +73,147 @@ public sealed partial class VaultPage : Page
         }
 
         StartDraft();
+    }
+
+    private async void OnNewItemClick(object sender, RoutedEventArgs e) => await NewItemAsync();
+
+    private void OnNewItemAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        args.Handled = true;
+        _ = NewItemAsync();
+    }
+
+    private void OnGeneratorClick(object sender, RoutedEventArgs e) => App.Shell.ShowGenerator();
+
+    private void OnGeneratorAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        args.Handled = true;
+
+        if (_session is null)
+        {
+            return;
+        }
+
+        App.Shell.ShowGenerator();
+    }
+
+    private void OnFocusSearchAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        args.Handled = true;
+        SearchBox.Focus(FocusState.Programmatic);
+    }
+
+    private async Task LockAsync()
+    {
+        if (!await SaveCurrentAsync(allowDiscardEmptyDraft: true))
+        {
+            return;
+        }
+
+        await App.Shell.LockAsync();
+    }
+
+    private void OnLockAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        args.Handled = true;
+        _ = LockAsync();
+    }
+
+    private async void OnSaveAccelerator(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        args.Handled = true;
+        await SaveCurrentAsync(allowDiscardEmptyDraft: false);
+    }
+
+    private async void OnDiceClick(object sender, RoutedEventArgs e)
+    {
+        if (_session is null || (_currentItem is null && !_isDraft))
+        {
+            return;
+        }
+
+        if (EditPassword.Password.Length > 0)
+        {
+            var confirmed = await ConfirmAsync(
+                "覆盖当前密码？",
+                "密码框里已有内容，生成的新密码会替换它。",
+                "覆盖");
+
+            if (!confirmed)
+            {
+                return;
+            }
+        }
+
+        try
+        {
+            EditPassword.Password = PasswordGenerator.Generate(App.Shell.GeneratorOptions);
+        }
+        catch (Exception ex) when (ex is ArgumentException or ArgumentOutOfRangeException)
+        {
+            ShowError(ex.Message);
+            return;
+        }
+
+        MarkDirty();
+        ShowTransient("已生成新密码，保存后写入密码库。", InfoBarSeverity.Success);
+    }
+
+    private void OnCopyUsernameClick(object sender, RoutedEventArgs e) => CopyToClipboard(EditUsername.Text, "用户名");
+
+    private void OnCopyPasswordClick(object sender, RoutedEventArgs e) => CopyToClipboard(EditPassword.Password, "密码");
+
+    private void OnClearClipboardClick(object sender, RoutedEventArgs e)
+    {
+        ClipboardService.Clear();
+        ShowTransient("剪贴板已清空。", InfoBarSeverity.Success);
+    }
+
+    private void CopyToClipboard(string value, string what)
+    {
+        if (value.Length == 0)
+        {
+            ShowTransient($"没有可复制的{what}。", InfoBarSeverity.Warning);
+            return;
+        }
+
+        var copied = ClipboardService.TryCopy(value);
+        ShowTransient(
+            copied ? $"已复制{what}，30 秒后自动清除。" : "剪贴板被其他程序占用，请稍后重试。",
+            copied ? InfoBarSeverity.Success : InfoBarSeverity.Error);
+    }
+
+    private async Task<bool> ConfirmAsync(string title, string message, string primaryText)
+    {
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = title,
+            Content = message,
+            PrimaryButtonText = primaryText,
+            CloseButtonText = "取消",
+            DefaultButton = ContentDialogButton.Close,
+        };
+
+        return await dialog.ShowAsync() == ContentDialogResult.Primary;
+    }
+
+    private void ShowTransient(string message, InfoBarSeverity severity)
+    {
+        TransientBar.Severity = severity;
+        TransientBar.Message = message;
+        TransientBar.IsOpen = true;
+
+        if (_transientTimer is null)
+        {
+            _transientTimer = DispatcherQueue.CreateTimer();
+            _transientTimer.Interval = TimeSpan.FromSeconds(4);
+            _transientTimer.IsRepeating = false;
+            _transientTimer.Tick += (_, _) => TransientBar.IsOpen = false;
+        }
+
+        _transientTimer.Stop();
+        _transientTimer.Start();
     }
 
     private async void OnTrashClick(object sender, RoutedEventArgs e)
@@ -186,15 +332,7 @@ public sealed partial class VaultPage : Page
         }
     }
 
-    private async void OnLockClick(object sender, RoutedEventArgs e)
-    {
-        if (!await SaveCurrentAsync(allowDiscardEmptyDraft: true))
-        {
-            return;
-        }
-
-        await App.Shell.LockAsync();
-    }
+    private async void OnLockClick(object sender, RoutedEventArgs e) => await LockAsync();
 
     /// <summary>
     /// 提交当前修改。新建草稿会变成正式条目；标题为空的草稿在允许的情况下直接丢弃。
