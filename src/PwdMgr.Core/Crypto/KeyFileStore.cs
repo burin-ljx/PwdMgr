@@ -18,10 +18,10 @@ public static class KeyFileStore
 
     /// <summary>把密钥对写入钥匙文件，采用“临时文件 + 替换”方式，避免写到一半留下坏文件。</summary>
     /// <summary>
-    /// 把密钥对写入钥匙文件。默认采用“临时文件 + 替换”；
-    /// <paramref name="writeInPlace"/> 为 true 时直接写入已存在的占位文件（文件选择器预建的 0 字节文件）。
+    /// 把密钥对写入钥匙文件。钥匙文件只在创建时写入，直接覆盖目标（可能是文件对话框预建的
+    /// 0 字节占位文件），不做临时文件替换，避免依赖删除与改名权限。
     /// </summary>
-    public static void Save(string path, VaultKeyPair keyPair, bool writeInPlace = false)
+    public static void Save(string path, VaultKeyPair keyPair)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(keyPair);
@@ -36,16 +36,7 @@ public static class KeyFileStore
         };
 
         var json = JsonSerializer.Serialize(model, VaultJsonContext.Default.KeyFileModel);
-        var bytes = Encoding.UTF8.GetBytes(json);
-
-        if (writeInPlace)
-        {
-            AtomicFile.WriteInPlace(path, bytes);
-        }
-        else
-        {
-            AtomicFile.Write(path, bytes);
-        }
+        AtomicFile.WriteInPlace(path, Encoding.UTF8.GetBytes(json));
     }
 
     /// <summary>读取并校验钥匙文件。任何不一致都会抛出 <see cref="VaultException"/>。</summary>

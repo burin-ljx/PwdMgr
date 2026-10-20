@@ -75,12 +75,11 @@ public sealed class VaultSession : IAsyncDisposable
         EnsureDistinctPaths(vaultFullPath, keyFullPath);
         EnsureDirectory(vaultFullPath);
         EnsureDirectory(keyFullPath);
-        EnsureDirectoryIsWritable(vaultFullPath);
-        EnsureDirectoryIsWritable(keyFullPath);
 
-        // 文件保存对话框会预建 0 字节文件：这种占位文件直接覆盖写，不删除重建。
-        var vaultIsPlaceholder = EnsureWritableTarget(vaultFullPath, "密码库文件");
-        var keyIsPlaceholder = EnsureWritableTarget(keyFullPath, "钥匙文件");
+        // 只在目标不是空文件时才拒绝；空文件（文件对话框预建的占位文件）直接覆盖写入，
+        // 整个创建流程不做删除或改名，避免在只允许“创建/写入”的目录里失败。
+        EnsureWritableTarget(vaultFullPath, "密码库文件");
+        EnsureWritableTarget(keyFullPath, "钥匙文件");
 
         var lockStream = AcquireLock(vaultFullPath);
         VaultKeyPair? keyPair = null;
@@ -97,7 +96,7 @@ public sealed class VaultSession : IAsyncDisposable
 
             try
             {
-                ExecuteWithRetry(() => KeyFileStore.Save(keyFullPath, keyPair, writeInPlace: keyIsPlaceholder));
+                ExecuteWithRetry(() => KeyFileStore.Save(keyFullPath, keyPair));
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
@@ -120,18 +119,9 @@ public sealed class VaultSession : IAsyncDisposable
 
             try
             {
-                if (vaultIsPlaceholder)
-                {
-                    await ExecuteWithRetryAsync(
-                            () => AtomicFile.WriteInPlaceAsync(vaultFullPath, fileBytes, cancellationToken))
-                        .ConfigureAwait(false);
-                }
-                else
-                {
-                    await ExecuteWithRetryAsync(
-                            () => AtomicFile.WriteAsync(vaultFullPath, fileBytes, cancellationToken))
-                        .ConfigureAwait(false);
-                }
+                await ExecuteWithRetryAsync(
+                        () => AtomicFile.WriteInPlaceAsync(vaultFullPath, fileBytes, cancellationToken))
+                    .ConfigureAwait(false);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
@@ -320,6 +310,10 @@ public sealed class VaultSession : IAsyncDisposable
         Document.ClearSensitive();
         _keyPair.Dispose();
         await _lockStream.DisposeAsync().ConfigureAwait(false);
+
+        // 尽力删除锁文件；没有删除权限时留着也不影响下次打开（只要没有进程持有它）。
+        TryDelete(VaultPath + LockFileSuffix);
+
         _saveGate.Dispose();
         GC.SuppressFinalize(this);
     }
@@ -480,13 +474,15 @@ public sealed class VaultSession : IAsyncDisposable
 
         try
         {
+            // 不用 DeleteOnClose：某些目录只允许创建/写入、不允许删除，
+            // 带删除标记的句柄会直接失败。锁文件随后在释放时尽力删除。
             return new FileStream(
                 lockPath,
                 FileMode.OpenOrCreate,
                 FileAccess.ReadWrite,
                 FileShare.None,
                 1,
-                FileOptions.DeleteOnClose);
+                FileOptions.None);
         }
         catch (IOException ex)
         {
@@ -494,9 +490,10 @@ public sealed class VaultSession : IAsyncDisposable
         }
         catch (UnauthorizedAccessException ex)
         {
+            var directory = Path.GetDirectoryName(vaultPath) ?? vaultPath;
             throw new VaultException(
                 VaultErrorCode.SaveFailed,
-                $"无法创建锁文件：{lockPath}{Environment.NewLine}{ex.Message}",
+                $"无法在这个文件夹里创建文件：{directory}{Environment.NewLine}{ex.Message}",
                 ex);
         }
     }
@@ -519,42 +516,6 @@ public sealed class VaultSession : IAsyncDisposable
         }
     }
 
-    /// <summary>
-    /// 写入前先在目标目录建一个临时文件再删掉，确认目录本身可写。
-    /// 这样权限或安全软件拦截会在真正写入前暴露，错误也能明确指向文件夹。
-    /// </summary>
-    private static void EnsureDirectoryIsWritable(string filePath)
-    {
-        var directory = Path.GetDirectoryName(filePath);
-        if (string.IsNullOrEmpty(directory))
-        {
-            return;
-        }
-
-        var probePath = Path.Combine(directory, $".pwdmgr-probe-{Guid.NewGuid():N}.tmp");
-
-        try
-        {
-            using (var stream = new FileStream(
-                       probePath,
-                       FileMode.CreateNew,
-                       FileAccess.Write,
-                       FileShare.None,
-                       1,
-                       FileOptions.DeleteOnClose))
-            {
-                stream.WriteByte(0);
-            }
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            throw new VaultException(
-                VaultErrorCode.SaveFailed,
-                $"无法在这个文件夹里创建文件：{directory}。请换一个有写入权限的文件夹，或检查安全软件的拦截。",
-                ex);
-        }
-    }
-
     private static void EnsureDistinctPaths(string vaultPath, string keyPath)
     {
         if (string.Equals(vaultPath, keyPath, StringComparison.OrdinalIgnoreCase))
@@ -564,14 +525,14 @@ public sealed class VaultSession : IAsyncDisposable
     }
 
     /// <summary>
-    /// 检查写入目标。返回 true 表示目标是一个 0 字节占位文件（文件保存对话框预建），
-    /// 调用方应直接覆盖写；返回 false 表示目标不存在；非空文件一律拒绝，避免误覆盖已有数据。
+    /// 检查写入目标：目标不存在或只是 0 字节占位文件（文件保存对话框预建）时放行，
+    /// 非空文件一律拒绝，避免误覆盖已有数据。
     /// </summary>
-    private static bool EnsureWritableTarget(string path, string description)
+    private static void EnsureWritableTarget(string path, string description)
     {
         if (!File.Exists(path))
         {
-            return false;
+            return;
         }
 
         long length;
@@ -587,14 +548,12 @@ public sealed class VaultSession : IAsyncDisposable
                 ex);
         }
 
-        if (length == 0)
+        if (length > 0)
         {
-            return true;
+            throw new VaultException(
+                VaultErrorCode.TargetExists,
+                $"{description}已存在且不是空文件，请换一个文件名或先移除它：{path}");
         }
-
-        throw new VaultException(
-            VaultErrorCode.TargetExists,
-            $"{description}已存在且不是空文件，请换一个文件名或先移除它：{path}");
     }
 
     private static void TryDelete(string path)

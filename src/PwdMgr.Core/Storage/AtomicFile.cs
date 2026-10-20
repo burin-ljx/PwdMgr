@@ -103,6 +103,11 @@ internal static class AtomicFile
 
     private static void ClearReadOnly(string path)
     {
+        if (!File.Exists(path))
+        {
+            return;
+        }
+
         var attributes = File.GetAttributes(path);
         if ((attributes & FileAttributes.ReadOnly) != 0)
         {
