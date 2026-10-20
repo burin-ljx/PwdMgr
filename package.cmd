@@ -47,18 +47,18 @@ if errorlevel 1 (
     exit /b 1
 )
 
-if not exist "%STAGE%\PwdMgr.App.exe" (
-    echo [package] PwdMgr.App.exe missing after publish.
+if not exist "%STAGE%\PwdMgr.exe" (
+    echo [package] PwdMgr.exe missing after publish.
     exit /b 1
 )
 
-rem Publish does not copy the compiled XAML resources (PwdMgr.App.pri);
+rem Publish does not copy the compiled XAML resources (PwdMgr.pri);
 rem without it the app fails to start with "Cannot locate resource".
-set "PRI=%ROOT%src\PwdMgr.App\bin\x64\Release\net8.0-windows10.0.19041.0\win-x64\PwdMgr.App.pri"
+set "PRI=%ROOT%src\PwdMgr.App\bin\x64\Release\net8.0-windows10.0.19041.0\win-x64\PwdMgr.pri"
 if exist "%PRI%" (
-    copy /y "%PRI%" "%STAGE%\PwdMgr.App.pri" >nul
+    copy /y "%PRI%" "%STAGE%\PwdMgr.pri" >nul
 ) else (
-    echo [package] WARNING: PwdMgr.App.pri not found, XAML resources may be missing.
+    echo [package] WARNING: PwdMgr.pri not found, XAML resources may be missing.
 )
 
 copy /y "%ROOT%docs\使用说明.txt" "%STAGE%\README.txt" >nul

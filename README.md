@@ -1,4 +1,4 @@
-﻿# PwdMgr
+# PwdMgr
 
 本地离线密码管理器（Windows / C# / WinUI 3）。数据只存在两个文件里：加密的密码库 + 你保管的钥匙文件。软件运行时不联任何网。
 
@@ -83,7 +83,7 @@ src\PwdMgr.App\bin\x64\Debug\net8.0-windows10.0.19041.0\win-x64\startup.log
 
 ```cmd
 robocopy "src\PwdMgr.App\bin\x64\Debug\net8.0-windows10.0.19041.0\win-x64" "%LOCALAPPDATA%\PwdMgrApp" /E
-"%LOCALAPPDATA%\PwdMgrApp\PwdMgr.App.exe"
+"%LOCALAPPDATA%\PwdMgrApp\PwdMgr.exe"
 ```
 
 只构建不依赖界面的部分（Core / CLI / 测试）时，仍然可以用 dotnet CLI：
@@ -104,11 +104,11 @@ package.cmd
 2. 把发布结果放到 `dist\PwdMgr\`，并把 `docs\使用说明.txt` 复制进去作为 `README.txt`；
 3. 压缩成 `dist\PwdMgr-1.0.0-win-x64.zip`（约 67 MB，解压后约 160 MB）。
 
-发布目录里额外复制了 `PwdMgr.App.pri`：MSBuild 的 Publish 目标不会带上这份 XAML 资源，缺了它程序启动会报 `Cannot locate resource`。
+发布目录里额外复制了 `PwdMgr.pri`：MSBuild 的 Publish 目标不会带上这份 XAML 资源，缺了它程序启动会报 `Cannot locate resource`。
 
 分发与升级：
 
-- 把 zip 解压到任意文件夹，双击 `PwdMgr.App.exe` 即可，无需安装、不写注册表；设置保存在 `%LOCALAPPDATA%\PwdMgr\settings.json`。
+- 把 zip 解压到任意文件夹，双击 `PwdMgr.exe` 即可，无需安装、不写注册表；设置保存在 `%LOCALAPPDATA%\PwdMgr\settings.json`。
 - 升级时用新版本覆盖程序文件夹即可；密码库、钥匙文件和 `.bak` 都不在程序目录里，不受影响。
 - 换机器：整个程序文件夹 + 密码库 + 钥匙文件一起复制过去。
 
@@ -117,13 +117,13 @@ package.cmd
 ## 运行
 
 ```powershell
-.\src\PwdMgr.App\bin\x64\Debug\net8.0-windows10.0.19041.0\win-x64\PwdMgr.App.exe
+.\src\PwdMgr.App\bin\x64\Debug\net8.0-windows10.0.19041.0\win-x64\PwdMgr.exe
 ```
 
 也支持带参数直接打开一个密码库（便于验收与调试）：
 
 ```powershell
-.\PwdMgr.App.exe .\demo\vault.pwdb .\demo\vault.key
+.\PwdMgr.exe .\demo\vault.pwdb .\demo\vault.key
 ```
 
 ## 测试

@@ -43,17 +43,17 @@ if errorlevel 1 (
 
 echo [build] OK.
 
-if not exist "%APP_OUT%\PwdMgr.App.exe" (
-    echo [build] PwdMgr.App.exe not found, skip publish.
+if not exist "%APP_OUT%\PwdMgr.exe" (
+    echo [build] PwdMgr.exe not found, skip publish.
     exit /b 0
 )
 
 robocopy "%APP_OUT%" "%APP_PUBLISH%" /E /NFL /NDL /NJH /NJS /NP >nul
 if errorlevel 8 (
     echo [build] Could not copy to %APP_PUBLISH%.
-    echo [build] Run the app from: %APP_OUT%\PwdMgr.App.exe
+    echo [build] Run the app from: %APP_OUT%\PwdMgr.exe
     exit /b 0
 )
 
-echo [build] App published to: %APP_PUBLISH%\PwdMgr.App.exe
+echo [build] App published to: %APP_PUBLISH%\PwdMgr.exe
 exit /b 0
