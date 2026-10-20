@@ -4,7 +4,15 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Background="Transparent">
 
-    <Grid>
+    <Grid x:Name="DropSurface" AllowDrop="True">
+        <InfoBar
+            x:Name="DropErrorBar"
+            Severity="Error"
+            IsOpen="False"
+            IsClosable="True"
+            VerticalAlignment="Top"
+            Margin="16,12,16,0" />
+
         <StackPanel
             HorizontalAlignment="Center"
             VerticalAlignment="Center"
@@ -46,6 +54,10 @@
                     HorizontalAlignment="Stretch"
                     MinHeight="44"
                     Click="OnOpenClick" />
+                <TextBlock
+                    Style="{StaticResource HintTextStyle}"
+                    HorizontalAlignment="Center"
+                    Text="也可以把 .pwdb 密码库文件直接拖到窗口里打开" />
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Spacing="8">

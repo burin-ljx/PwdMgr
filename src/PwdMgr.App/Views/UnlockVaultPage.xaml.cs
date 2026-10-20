@@ -12,6 +12,10 @@ public sealed partial class UnlockVaultPage : Page
     public UnlockVaultPage()
     {
         InitializeComponent();
+
+        // 输入框等子元素可能把拖放事件标记为已处理，这里连已处理的事件也接收。
+        DropSurface.AddHandler(DragOverEvent, new DragEventHandler(OnDragOver), handledEventsToo: true);
+        DropSurface.AddHandler(DropEvent, new DragEventHandler(OnDrop), handledEventsToo: true);
     }
 
     public UnlockVaultViewModel ViewModel { get; } = new();
@@ -53,6 +57,59 @@ public sealed partial class UnlockVaultPage : Page
     }
 
     private void OnBackClick(object sender, RoutedEventArgs e) => App.Shell.NavigateToWelcome();
+
+    private void OnDragOver(object sender, DragEventArgs e)
+    {
+        if (FileDropHelper.CanAccept(e))
+        {
+            FileDropHelper.Accept(e, "拖入密码库或钥匙文件");
+        }
+    }
+
+    private async void OnDrop(object sender, DragEventArgs e)
+    {
+        if (!FileDropHelper.CanAccept(e))
+        {
+            return;
+        }
+
+        e.Handled = true;
+        var result = await FileDropHelper.ReadAsync(e);
+
+        if (result.Error is not null)
+        {
+            ViewModel.ErrorMessage = result.Error;
+            return;
+        }
+
+        if (result.VaultPath is { } vaultPath)
+        {
+            ViewModel.VaultPath = vaultPath;
+            ViewModel.ErrorMessage = null;
+
+            // 同目录下有同名钥匙文件时顺手填上。
+            if (string.IsNullOrWhiteSpace(ViewModel.KeyPath))
+            {
+                var suggested = FilePickerService.SuggestKeyPath(vaultPath);
+                if (File.Exists(suggested))
+                {
+                    ViewModel.KeyPath = suggested;
+                }
+            }
+        }
+
+        if (result.KeyPath is { } keyPath)
+        {
+            if (string.IsNullOrWhiteSpace(ViewModel.VaultPath))
+            {
+                ViewModel.ErrorMessage = FileDropHelper.KeyFirstMessage;
+                return;
+            }
+
+            ViewModel.KeyPath = keyPath;
+            ViewModel.ErrorMessage = null;
+        }
+    }
 
     /// <summary>去掉首尾空白与粘贴时可能带上的引号。</summary>
     private static string CleanPath(string path) => path.Trim().Trim('"').Trim();

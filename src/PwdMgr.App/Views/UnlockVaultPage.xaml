@@ -4,7 +4,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Background="Transparent">
 
-    <ScrollViewer Padding="32,28,32,24" HorizontalScrollBarVisibility="Disabled">
+    <Grid x:Name="DropSurface" AllowDrop="True">
+        <ScrollViewer Padding="32,28,32,24" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Width="760" HorizontalAlignment="Center" Spacing="18">
 
             <StackPanel Spacing="6">
@@ -66,6 +67,11 @@
                         Click="OnOpenClick" />
                 </StackPanel>
             </Grid>
-        </StackPanel>
-    </ScrollViewer>
+
+            <TextBlock
+                Style="{StaticResource HintTextStyle}"
+                Text="也可以直接把 .pwdb 和 .key 文件拖到窗口里：先拖密码库，再拖钥匙。" />
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
 </Page>
