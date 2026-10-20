@@ -53,13 +53,21 @@ PwdMgr.exe "D:\我的密码库.pwdb" "D:\我的密码库.key"
 dotnet tests/PwdMgr.Core.Tests/bin/Debug/net8.0/PwdMgr.Core.Tests.dll
 ```
 
-打包绿色版（自包含，目标机无需装 .NET 或 Windows App SDK）：
+打包正式发布包（自包含，目标机无需装 .NET 或 Windows App SDK）：
 
 ```cmd
 package.cmd
 ```
 
-输出 `dist\PwdMgr-1.0.0-win-x64.zip`，约 67 MB。
+版本号只在 `Directory.Build.props` 的 `<Version>` 里维护，打包脚本会自动读取。输出：
+
+```
+dist\PwdMgr-1.0.0-win-x64\                    解压即用的程序目录
+dist\PwdMgr-1.0.0-win-x64.zip                 发布包（约 67 MB，内含同名顶层目录）
+dist\PwdMgr-1.0.0-win-x64.zip.sha256          SHA-256 校验和
+```
+
+包内包含 `PwdMgr.exe`、依赖 DLL、`PwdMgr.pri`、`README.txt`、`README.md`、`LICENSE` 与 `LICENSE.GPL-3.0`。
 
 ## 如何使用
 

@@ -1,9 +1,10 @@
 @echo off
 setlocal enabledelayedexpansion
 
-rem Build a portable (green) package:
-rem   dist\PwdMgr\                      published app folder
-rem   dist\PwdMgr-<version>-win-x64.zip packaged archive
+rem Build a release-ready portable package:
+rem   dist\PwdMgr-<version>-win-x64\              published app folder
+rem   dist\PwdMgr-<version>-win-x64.zip          archive, contains that folder
+rem   dist\PwdMgr-<version>-win-x64.zip.sha256   checksum for release notes
 rem A .cmd file is used because this machine's PowerShell execution policy blocks .ps1 scripts.
 
 set "ROOT=%~dp0"
@@ -11,10 +12,19 @@ set "TEMP=%ROOT%.artifacts\temp"
 set "TMP=%TEMP%"
 if not exist "%TEMP%" mkdir "%TEMP%"
 
-set "VERSION=1.0.0"
+rem Single source of truth for the version: Directory.Build.props
+set "VERSION="
+for /f "tokens=3 delims=<>" %%v in ('findstr /r /c:"<Version>" "%ROOT%Directory.Build.props"') do set "VERSION=%%v"
+if not defined VERSION (
+    echo [package] could not read <Version> from Directory.Build.props
+    exit /b 1
+)
+
+set "NAME=PwdMgr-%VERSION%-win-x64"
 set "DIST=%ROOT%dist"
-set "STAGE=%DIST%\PwdMgr"
-set "ZIP=%DIST%\PwdMgr-%VERSION%-win-x64.zip"
+set "STAGE=%DIST%\%NAME%"
+set "ZIP=%DIST%\%NAME%.zip"
+set "SHA=%ZIP%.sha256"
 
 set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
 if not exist "%VSWHERE%" (
@@ -66,15 +76,33 @@ if exist "%ROOT%README.md" copy /y "%ROOT%README.md" "%STAGE%\README.md" >nul
 if exist "%ROOT%LICENSE" copy /y "%ROOT%LICENSE" "%STAGE%\LICENSE" >nul
 if exist "%ROOT%LICENSE.GPL-3.0" copy /y "%ROOT%LICENSE.GPL-3.0" "%STAGE%\LICENSE.GPL-3.0" >nul
 
+rem Sanity check: the published exe must carry the release version.
+for /f "usebackq delims=" %%v in (`powershell -NoProfile -Command "(Get-Item '%STAGE%\PwdMgr.exe').VersionInfo.FileVersion"`) do set "EXE_VERSION=%%v"
+echo [package] exe file version: %EXE_VERSION%
+if not defined EXE_VERSION (
+    echo [package] could not read exe version.
+    exit /b 1
+)
+
 if exist "%ZIP%" del "%ZIP%"
-powershell -NoProfile -ExecutionPolicy Bypass -Command "Compress-Archive -Path '%STAGE%\*' -DestinationPath '%ZIP%' -CompressionLevel Optimal -Force"
+if exist "%SHA%" del "%SHA%"
+rem Windows PowerShell 5.1 writes '\' separators in zip entries; tools\package-zip.ps1
+rem builds the archive manually with '/' separators and one top-level folder.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%tools\package-zip.ps1" -Stage "%STAGE%" -Zip "%ZIP%" -RootName "%NAME%"
 if errorlevel 1 (
     echo [package] zip FAILED.
     exit /b 1
 )
 
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$h=(Get-FileHash -Algorithm SHA256 -LiteralPath '%ZIP%').Hash.ToLower(); Set-Content -Encoding ASCII -Path '%SHA%' -Value ($h + '  %NAME%.zip')"
+if errorlevel 1 (
+    echo [package] checksum FAILED.
+    exit /b 1
+)
+
 echo [package] OK.
-echo [package] folder: %STAGE%
-echo [package] zip:    %ZIP%
-for %%f in ("%ZIP%") do echo [package] size:   %%~zf bytes
+echo [package] folder:   %STAGE%
+echo [package] zip:      %ZIP%
+echo [package] checksum: %SHA%
+for %%f in ("%ZIP%") do echo [package] size:     %%~zf bytes
 exit /b 0
