@@ -56,6 +56,23 @@ build.cmd
 
 两个脚本都会用 `vswhere` 找到 Visual Studio 的 MSBuild 再编译整个解决方案。也可以在 Visual Studio 里直接打开 `PwdMgr.sln` 构建。
 
+> 环境说明：`build.cmd` 会把 `TMP`/`TEMP` 指向项目内的 `.artifacts\temp`。
+> 有些做了安全加固的机器只允许未签名程序写项目目录，这时 Windows SDK 的 `MakePri.exe`
+> 会因写不了系统临时目录而以 `0x80070005` 失败，导致构建中断；重定向后即可正常构建。
+
+### 创建密码库时提示“无法在这个文件夹里创建文件”
+
+先看程序目录下的 `startup.log`，开头的“临时目录/程序目录/用户目录 可写=是/否”会指出问题：
+
+- 三个都是“否”：程序被安全策略限制，只能把库建在可写目录，或给程序签名/放行；
+- 只有目标目录是“否”：换一个有写入权限的文件夹即可。
+
+程序日志在：
+
+```
+src\PwdMgr.App\bin\x64\Debug\net8.0-windows10.0.19041.0\win-x64\startup.log
+```
+
 只构建不依赖界面的部分（Core / CLI / 测试）时，仍然可以用 dotnet CLI：
 
 ```powershell
