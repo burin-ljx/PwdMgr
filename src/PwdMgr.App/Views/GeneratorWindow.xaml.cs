@@ -16,9 +16,9 @@ public sealed partial class GeneratorWindow : Window
         InitializeComponent();
 
         Title = "密码生成器";
-        AppWindow.Resize(new SizeInt32(560, 640));
-        AppWindow.Move(CenteredPosition(560, 640));
-        WindowHelper.SetMinimumSize(this, 460, 560);
+        AppWindow.Resize(new SizeInt32(560, 740));
+        AppWindow.Move(CenteredPosition(560, 740));
+        WindowHelper.SetMinimumSize(this, 460, 660);
 
         _isLoading = true;
         LengthSlider.Minimum = PasswordGenerator.MinLength;
@@ -34,6 +34,7 @@ public sealed partial class GeneratorWindow : Window
         DigitsCheck.IsChecked = options.IncludeDigits;
         SymbolsCheck.IsChecked = options.IncludeSymbols;
         AmbiguousCheck.IsChecked = options.ExcludeAmbiguous;
+        CustomCharsBox.Text = options.CustomCharacters;
         _isLoading = false;
 
         Generate();
@@ -61,7 +62,16 @@ public sealed partial class GeneratorWindow : Window
         IncludeDigits = DigitsCheck.IsChecked == true,
         IncludeSymbols = SymbolsCheck.IsChecked == true,
         ExcludeAmbiguous = AmbiguousCheck.IsChecked == true,
+        CustomCharacters = CustomCharsBox.Text,
     };
+
+    private void OnCustomCharsChanged(object sender, TextChangedEventArgs e)
+    {
+        if (!_isLoading)
+        {
+            ApplySettings();
+        }
+    }
 
     /// <summary>规则改动只更新设置与提示，不重新生成；点“生成”才按新规则生成。</summary>
     private void ApplySettings()

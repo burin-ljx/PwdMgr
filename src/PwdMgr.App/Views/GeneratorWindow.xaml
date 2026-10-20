@@ -11,6 +11,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -49,7 +50,17 @@
             <CheckBox x:Name="AmbiguousCheck" Content="排除易混淆字符（I O l 0 1）" Checked="OnOptionChanged" Unchecked="OnOptionChanged" />
         </StackPanel>
 
-        <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="8">
+        <StackPanel Grid.Row="4" Spacing="4">
+            <TextBlock Text="自定义字符" Style="{StaticResource FieldLabelStyle}" />
+            <TextBox
+                x:Name="CustomCharsBox"
+                AutomationProperties.AutomationId="CustomCharsBox"
+                PlaceholderText="可选，例如 甲乙丙 或 ★※；填了就保证至少出现一个"
+                MaxLength="64"
+                TextChanged="OnCustomCharsChanged" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="5" Orientation="Horizontal" Spacing="8">
             <Button
                 x:Name="RegenerateButton"
                 AutomationProperties.AutomationId="RegenerateButton"
@@ -64,7 +75,7 @@
         </StackPanel>
 
         <InfoBar
-            Grid.Row="5"
+            Grid.Row="6"
             x:Name="StatusBar"
             Severity="Success"
             IsOpen="False"

@@ -84,6 +84,63 @@ public sealed class PasswordGeneratorTests
     }
 
     [Fact]
+    public void Generate_WithCustomCharacters_AlwaysContainsAtLeastOne()
+    {
+        var options = new PasswordOptions { Length = 16, CustomCharacters = "★※" };
+
+        for (var attempt = 0; attempt < 50; attempt++)
+        {
+            var password = PasswordGenerator.Generate(options);
+            Assert.Contains(password, character => character is '★' or '※');
+        }
+    }
+
+    [Fact]
+    public void Generate_WithOnlyCustomCharacters_UsesOnlyThem()
+    {
+        var options = new PasswordOptions
+        {
+            Length = 12,
+            IncludeUppercase = false,
+            IncludeLowercase = false,
+            IncludeDigits = false,
+            IncludeSymbols = false,
+            CustomCharacters = "甲乙丙",
+        };
+
+        var password = PasswordGenerator.Generate(options);
+
+        Assert.All(password, character => Assert.Contains(character, "甲乙丙"));
+    }
+
+    [Fact]
+    public void Generate_CustomCharactersAreDeduplicated()
+    {
+        var options = new PasswordOptions
+        {
+            Length = 12,
+            IncludeUppercase = false,
+            IncludeLowercase = false,
+            IncludeDigits = false,
+            IncludeSymbols = false,
+            CustomCharacters = "★★※※",
+        };
+
+        Assert.Equal(2, PasswordGenerator.PoolSize(options));
+        Assert.Equal(2, PasswordGenerator.BuildPools(options)[0].Length);
+    }
+
+    [Fact]
+    public void Generate_CustomCharactersIgnoreAmbiguousFilter()
+    {
+        var options = new PasswordOptions { Length = 16, CustomCharacters = "IOl01", ExcludeAmbiguous = true };
+
+        var password = PasswordGenerator.Generate(options);
+
+        Assert.Contains(password, character => character is 'I' or 'O' or 'l' or '0' or '1');
+    }
+
+    [Fact]
     public void Generate_WithoutAnyClass_Throws()
     {
         var options = new PasswordOptions

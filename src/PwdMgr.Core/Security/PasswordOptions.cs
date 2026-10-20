@@ -16,4 +16,7 @@ public sealed record PasswordOptions
 
     /// <summary>排除容易混淆的字符（I、O、l、0、1）。</summary>
     public bool ExcludeAmbiguous { get; init; } = true;
+
+    /// <summary>额外加入的字符（可重复出现；会自动去重）。</summary>
+    public string CustomCharacters { get; init; } = string.Empty;
 }

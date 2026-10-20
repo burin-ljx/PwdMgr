@@ -40,7 +40,7 @@ public static class PasswordGenerator
         var pools = BuildPools(options);
         if (pools.Count == 0)
         {
-            throw new ArgumentException("至少要选择一种字符类型。", nameof(options));
+            throw new ArgumentException("至少要选择一种字符类型，或填写自定义字符。", nameof(options));
         }
 
         if (options.Length < pools.Count)
@@ -68,11 +68,11 @@ public static class PasswordGenerator
         return new string(characters);
     }
 
-    /// <summary>当前选项下单个字符的候选池大小。</summary>
+    /// <summary>当前选项下单个字符的候选池大小（去重后，自定义字符与内置字符重叠时不重复计数）。</summary>
     public static int PoolSize(PasswordOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        return BuildPools(options).Sum(pool => pool.Length);
+        return BuildPools(options).SelectMany(pool => pool).Distinct().Count();
     }
 
     /// <summary>熵值（比特）：长度 × log2(候选池大小)。</summary>
@@ -94,12 +94,13 @@ public static class PasswordGenerator
     /// <summary>按选项返回启用的字符池；排除易混字符时从每个池里去掉它们。</summary>
     public static IReadOnlyList<string> BuildPools(PasswordOptions options)
     {
-        var pools = new List<string>(4);
+        var pools = new List<string>(5);
 
         Add(Include(options.IncludeUppercase, Uppercase));
         Add(Include(options.IncludeLowercase, Lowercase));
         Add(Include(options.IncludeDigits, Digits));
         Add(Include(options.IncludeSymbols, Symbols));
+        Add(NormalizeCustom(options.CustomCharacters));
 
         return pools;
 
@@ -120,6 +121,33 @@ public static class PasswordGenerator
 
             return options.ExcludeAmbiguous ? RemoveAmbiguous(pool) : pool;
         }
+    }
+
+    /// <summary>自定义字符：去掉控制字符与重复项，其余原样保留（不受“排除易混字符”影响）。</summary>
+    private static string NormalizeCustom(string custom)
+    {
+        if (string.IsNullOrEmpty(custom))
+        {
+            return string.Empty;
+        }
+
+        var builder = new StringBuilder(custom.Length);
+        var seen = new HashSet<char>();
+
+        foreach (var character in custom)
+        {
+            if (char.IsControl(character))
+            {
+                continue;
+            }
+
+            if (seen.Add(character))
+            {
+                builder.Append(character);
+            }
+        }
+
+        return builder.ToString();
     }
 
     private static string RemoveAmbiguous(string pool)
