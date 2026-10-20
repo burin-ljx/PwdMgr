@@ -75,6 +75,8 @@ public sealed class VaultSession : IAsyncDisposable
         EnsureDistinctPaths(vaultFullPath, keyFullPath);
         EnsureDirectory(vaultFullPath);
         EnsureDirectory(keyFullPath);
+        EnsureDirectoryIsWritable(vaultFullPath);
+        EnsureDirectoryIsWritable(keyFullPath);
 
         // 文件保存对话框会预建 0 字节文件：这种占位文件直接覆盖写，不删除重建。
         var vaultIsPlaceholder = EnsureWritableTarget(vaultFullPath, "密码库文件");
@@ -93,9 +95,19 @@ public sealed class VaultSession : IAsyncDisposable
             var wrappedKey = keyPair.WrapDataKey(dataKey);
             var document = VaultDocument.CreateNew();
 
-            KeyFileStore.Save(keyFullPath, keyPair, writeInPlace: keyIsPlaceholder);
-            keyFileCreated = true;
+            try
+            {
+                ExecuteWithRetry(() => KeyFileStore.Save(keyFullPath, keyPair, writeInPlace: keyIsPlaceholder));
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                throw new VaultException(
+                    VaultErrorCode.SaveFailed,
+                    $"无法写入钥匙文件：{keyFullPath}{Environment.NewLine}{ex.Message}",
+                    ex);
+            }
 
+            keyFileCreated = true;
             var header = new VaultHeader
             {
                 CreatedUtc = document.CreatedUtc,
@@ -106,13 +118,27 @@ public sealed class VaultSession : IAsyncDisposable
 
             var (fileBytes, nonce) = BuildFileBytes(header, document.ToPayload(), dataKey, []);
 
-            if (vaultIsPlaceholder)
+            try
             {
-                await AtomicFile.WriteInPlaceAsync(vaultFullPath, fileBytes, cancellationToken).ConfigureAwait(false);
+                if (vaultIsPlaceholder)
+                {
+                    await ExecuteWithRetryAsync(
+                            () => AtomicFile.WriteInPlaceAsync(vaultFullPath, fileBytes, cancellationToken))
+                        .ConfigureAwait(false);
+                }
+                else
+                {
+                    await ExecuteWithRetryAsync(
+                            () => AtomicFile.WriteAsync(vaultFullPath, fileBytes, cancellationToken))
+                        .ConfigureAwait(false);
+                }
             }
-            else
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                await AtomicFile.WriteAsync(vaultFullPath, fileBytes, cancellationToken).ConfigureAwait(false);
+                throw new VaultException(
+                    VaultErrorCode.SaveFailed,
+                    $"无法写入密码库文件：{vaultFullPath}{Environment.NewLine}{ex.Message}",
+                    ex);
             }
 
             vaultFileCreated = true;
@@ -412,12 +438,50 @@ public sealed class VaultSession : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// 反复重试短暂失败的文件操作。杀毒软件扫描刚创建的文件时，会短时间占住它并返回
+    /// “拒绝访问”，重试几次通常就能通过。
+    /// </summary>
+    private static void ExecuteWithRetry(Action action, int attempts = 5)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                action();
+                return;
+            }
+            catch (Exception ex) when (attempt < attempts && ex is IOException or UnauthorizedAccessException)
+            {
+                Thread.Sleep(150);
+            }
+        }
+    }
+
+    private static async Task ExecuteWithRetryAsync(Func<Task> action, int attempts = 5)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                await action().ConfigureAwait(false);
+                return;
+            }
+            catch (Exception ex) when (attempt < attempts && ex is IOException or UnauthorizedAccessException)
+            {
+                await Task.Delay(150).ConfigureAwait(false);
+            }
+        }
+    }
+
     private static FileStream AcquireLock(string vaultPath)
     {
+        var lockPath = vaultPath + LockFileSuffix;
+
         try
         {
             return new FileStream(
-                vaultPath + LockFileSuffix,
+                lockPath,
                 FileMode.OpenOrCreate,
                 FileAccess.ReadWrite,
                 FileShare.None,
@@ -427,6 +491,13 @@ public sealed class VaultSession : IAsyncDisposable
         catch (IOException ex)
         {
             throw new VaultException(VaultErrorCode.VaultBusy, null, ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            throw new VaultException(
+                VaultErrorCode.SaveFailed,
+                $"无法创建锁文件：{lockPath}{Environment.NewLine}{ex.Message}",
+                ex);
         }
     }
 
@@ -445,6 +516,42 @@ public sealed class VaultSession : IAsyncDisposable
         if (!string.IsNullOrEmpty(directory))
         {
             Directory.CreateDirectory(directory);
+        }
+    }
+
+    /// <summary>
+    /// 写入前先在目标目录建一个临时文件再删掉，确认目录本身可写。
+    /// 这样权限或安全软件拦截会在真正写入前暴露，错误也能明确指向文件夹。
+    /// </summary>
+    private static void EnsureDirectoryIsWritable(string filePath)
+    {
+        var directory = Path.GetDirectoryName(filePath);
+        if (string.IsNullOrEmpty(directory))
+        {
+            return;
+        }
+
+        var probePath = Path.Combine(directory, $".pwdmgr-probe-{Guid.NewGuid():N}.tmp");
+
+        try
+        {
+            using (var stream = new FileStream(
+                       probePath,
+                       FileMode.CreateNew,
+                       FileAccess.Write,
+                       FileShare.None,
+                       1,
+                       FileOptions.DeleteOnClose))
+            {
+                stream.WriteByte(0);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            throw new VaultException(
+                VaultErrorCode.SaveFailed,
+                $"无法在这个文件夹里创建文件：{directory}。请换一个有写入权限的文件夹，或检查安全软件的拦截。",
+                ex);
         }
     }
 
