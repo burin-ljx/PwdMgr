@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PwdMgr.Core/PwdMgr.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PwdMgr.Core.Tests/PwdMgr.Core.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/PwdMgr.Cli/PwdMgr.Cli.csproj" />
+  </Folder>
+</Solution>

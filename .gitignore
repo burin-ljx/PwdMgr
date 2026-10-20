@@ -1,0 +1,17 @@
+# 构建产物
+bin/
+obj/
+.artifacts/
+TestResults/
+
+# 本地开发环境
+.vs/
+*.user
+*.suo
+
+# 测试与演示产生的密码库文件（绝不应提交）
+*.pwdb
+*.pwdb.bak
+*.pwdb.tmp
+*.pwdb.lock
+*.key
