@@ -170,7 +170,12 @@
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
-                        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+                        <!-- 右侧留出滚动条宽度，避免悬浮滚动条压住输入框 -->
+                        <ScrollViewer
+                            Grid.Row="0"
+                            Padding="0,0,16,0"
+                            HorizontalScrollBarVisibility="Disabled"
+                            VerticalScrollBarVisibility="Auto">
                             <StackPanel Spacing="10">
 
                                 <InfoBar
