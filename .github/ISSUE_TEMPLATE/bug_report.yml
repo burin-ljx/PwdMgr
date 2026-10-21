@@ -18,7 +18,7 @@ body:
       description: |
         What version of Windows do you use?
         你使用的 Windows 版本是什么？
-      placeholder: Windows 版本
+      placeholder: Windows version
     validations:
       required: true
 
